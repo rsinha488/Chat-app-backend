@@ -7,7 +7,9 @@ function socketIO(server) {
   const io = socketio(server,{
     cors: {
       // origin: "http://localhost:5173"
-      origin: "https://shiva2641998.github.io"
+      origin: "https://shiva2641998.github.io", // Frontend URL
+      methods: ["GET", "POST"],
+      credentials: true
     }
   });
   var t 
