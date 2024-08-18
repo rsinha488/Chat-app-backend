@@ -7,7 +7,7 @@ function socketIO(server) {
   const io = socketio(server,{
     cors: {
       // origin: "http://localhost:5173"
-      origin: "https://shiva2641998.github.io/shadow-chat-bundle/"
+      origin: "https://shiva2641998.github.io"
     }
   });
   var t 
