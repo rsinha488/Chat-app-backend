@@ -14,7 +14,11 @@ const corsOptions = {
   origin: "http://localhost:3000",
   optionSuccessStatus: 200,
 };
-app.use(cors());
+app.use(cors({
+  origin: 'https://shiva2641998.github.io', // Your frontend URL
+  methods: ['GET', 'POST'],
+  credentials: true,
+}));
 
 // app.use(cors())
 
