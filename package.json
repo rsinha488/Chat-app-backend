@@ -2,9 +2,9 @@
   "name": "chat-mongo-app",
   "version": "1.0.0",
   "description": "Its a chatting application built using socket.io mongodb and nodejs",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ruchi Sinha",
