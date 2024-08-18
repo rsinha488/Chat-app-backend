@@ -6,7 +6,8 @@ var socketEvent = {}
 function socketIO(server) {
   const io = socketio(server,{
     cors: {
-      origin: "http://localhost:5173"
+      // origin: "http://localhost:5173"
+      origin: "https://github.com"
     }
   });
   var t 
