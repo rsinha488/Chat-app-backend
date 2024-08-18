@@ -6,6 +6,10 @@ const roomSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  messages: [{
+    type: mongoose.Schema.Types.Mixed,
+    default: []
+  }],
   userCount: {
     type: Number,
     default: 0

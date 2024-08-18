@@ -4,7 +4,7 @@
   "description": "Its a chatting application built using socket.io mongodb and nodejs",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ruchi Sinha",
