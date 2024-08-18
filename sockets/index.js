@@ -10,9 +10,10 @@ function socketIO(server) {
       origin: "https://shiva2641998.github.io", // Frontend URL
       methods: ["GET", "POST"],
       credentials: true
-    }
+    },
+    transports: ['websocket', 'polling'],
   });
-  var t 
+  var t
    io.on('connection', (socket) => {
     socketEvent = socket
     console.log('A user connected',socket.id);
