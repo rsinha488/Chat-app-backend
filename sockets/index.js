@@ -6,8 +6,7 @@ var socketEvent = {}
 function socketIO(server) {
   const io = socketio(server,{
     cors: {
-      origin: "*",
-      // origin: "https://shiva2641998.github.io/shadow-chat-bundle", // Frontend URL
+      origin: "https://shiva2641998.github.io",
       methods: ["GET", "POST"],
       credentials: true
     },
