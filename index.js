@@ -15,8 +15,7 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 app.use(cors({
-  origin: "*",// Your frontend URL
-  // origin: 'https://shiva2641998.github.io/shadow-chat-bundle', // Your frontend URL
+  origin: 'https://shiva2641998.github.io',
   methods: ['GET', 'POST'],
   credentials: true,
 }));
