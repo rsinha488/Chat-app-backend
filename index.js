@@ -17,7 +17,7 @@ const corsOptions = {
 app.use(cors({
   origin: 'https://shiva2641998.github.io',
   methods: ['GET', 'POST'],
-  credentials: true,
+  // credentials: true,
 }));
 
 // app.use(cors())
