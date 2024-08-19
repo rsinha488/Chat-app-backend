@@ -7,7 +7,8 @@ function socketIO(server) {
   const io = new Server(server,{
     debug: true,
     cors: {
-      origin: "https://shiva2641998.github.io/",
+      origin: " * ",
+      // origin: "https://shiva2641998.github.io/",
       methods: ["GET", "POST"],
       credentials: true
     },
