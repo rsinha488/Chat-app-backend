@@ -5,6 +5,7 @@ var socketEvent = {}
 
 function socketIO(server) {
   const io = socketio(server,{
+    debug: true,
     cors: {
       origin: "https://shiva2641998.github.io",
       methods: ["GET", "POST"],
