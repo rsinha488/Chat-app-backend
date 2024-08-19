@@ -1,10 +1,10 @@
 // sockets/index.js
-const socketio = require('socket.io');
+const {Server} = require('socket.io');
 
 var socketEvent = {}
 
 function socketIO(server) {
-  const io = socketio(server,{
+  const io = new Server(server,{
     debug: true,
     cors: {
       origin: "https://shiva2641998.github.io/",
