@@ -16,7 +16,7 @@ exports.createData = async (req, res) => {
 // Get data by ID
 exports.getDataById = async (req, res) => {
   try {
-    const data = await DataModel.findById(req.params.id);
+    const data = await DataModel.findById({_id: req.params.id});
     if (!data) return res.status(404).json({ message: "Data not found" });
     res.json(data);
   } catch (error) {
