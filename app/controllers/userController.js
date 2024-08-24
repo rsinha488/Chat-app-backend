@@ -38,22 +38,6 @@ exports.subscribeToRoom = async (req, res) => {
     socket.userData = user; 
     req.app.io.to(roomId).emit("MemberUpdate", {badges:true, content:`${user.name} has joined`});
     
-    // await result.save();
-    // console.log("socketEvent", req.app.io.sockets.adapter.rooms.get(roomname));
-    // Get the users connected in the room
-  //   const d = await res.app.io.in(roomId).fetchSockets();
-  //   console.log(d)
-  // const roomUsers = req.app.io.sockets.adapter.rooms.get(roomId);
-  // const userIds = Array.from(roomUsers?.keys()); // Get the socket IDs in the room
-  //   console.log("userIds",userIds)
-  // // Convert socket IDs to usernames or other identifying information
-  // const usernames = userIds.map((id) => {
-  //   const socket = req.app.io.sockets.sockets.get(id);
-  //   // console.log("socket====",socket)
-  //   return socket.userData; // Assuming you've stored the username in the socket object
-  // });
-
-  // console.log(`Users in room "myRoom": ${usernames.join(', ')}`);
 
     res.status(200).json({ message: "User subscribed to room successfully" });
   } catch (error) {
@@ -156,6 +140,46 @@ exports.leaveRoom = async (req, res) => {
     // await user.save();
 
     res.status(200).json({ message: "User subscribed to room successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+exports.unsubscribeFromRoom = async (req, res) => {
+  try {
+    const socket = getSocket();
+    const { userId, roomId } = req.body;
+
+    // Find the user and room
+    const user = await User.findById({_id: userId});
+    const room = await Room.findById({_id: roomId});
+
+    if (!user || !room) {
+      return res.status(404).json({ error: "User or room not found" });
+    }
+
+    const currentRoom = usersInRooms[socket.id]; // Get the current room of the user
+
+    if (currentRoom === roomId) {
+      // User is in the room, so proceed to unsubscribe
+
+      // Decrement userCount in room model
+      await Room.updateOne(
+        { _id: roomId },
+        { $inc: { userCount: -1 } } // Decrement userCount by 1
+      );
+
+      // Leave the room
+      socket.leave(roomId);
+      delete usersInRooms[socket.id]; // Remove the user from the usersInRooms tracking
+
+      // Notify other users in the room
+      req.app.io.to(roomId).emit('MemberUpdate', {badges:true, content:`${user.name} has left the room`});
+      console.log(roomId , socket.id,"leave");
+
+      res.status(200).json({ message: "User unsubscribed from room successfully" });
+    } else {
+      res.status(400).json({ error: "User is not subscribed to this room" });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -7,6 +7,7 @@ const config = require("./config");
 const { socketIO } = require("./sockets");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -19,6 +20,12 @@ app.use(cors({
   methods: ['GET', 'POST'],
   // credentials: true,
 }));
+
+// Middleware to parse incoming request bodies
+// app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // app.use(cors())
 
