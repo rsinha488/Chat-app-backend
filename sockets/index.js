@@ -1,5 +1,6 @@
 // sockets/index.js
 const {Server} = require('socket.io');
+const { Chatlistener } = require('./socketListener/Chatlistener');
 
 var socketEvent = {}
 
@@ -28,6 +29,10 @@ function socketIO(server) {
     socket.on("msgReceived", data=>{
       console.log({data})
     })
+
+
+    Chatlistener(socket)
+
   });
 
   return io;
