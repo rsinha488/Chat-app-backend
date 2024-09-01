@@ -25,6 +25,14 @@ exports.sendMessage = async (req, res) => {
       emojiReaction: [],
     };
 
+    // const text = "#123abc! more text #456def, and #789ghi here";
+    const text = "#123abc! more text";
+    const match = text.match(/#([a-zA-Z0-9]+)/);
+    if (match) {
+      console.log(match[1]); // Output: 123abc
+      message = { ...message, hashtagTitle: match[1] };
+    }
+
     // await message.save();
 
     // Step 2: Push the message ID to the Room's messages array
@@ -61,31 +69,33 @@ exports.sendEmojiReaction = async (req, res) => {
 
     const msgfound = room.messages.map((message) => {
       if (message._id.toString() === msgId) {
-        let foundExit = message?.emojiReaction?.filter((e) => e.sender._id.toString() === sender._id.toString());
+        let foundExit = message?.emojiReaction?.filter(
+          (e) => e.sender._id.toString() === sender._id.toString()
+        );
         if (foundExit?.length > 0) {
-          console.log("foundExit",foundExit)
+          console.log("foundExit", foundExit);
           return {
             ...message,
             emojiReaction: message.emojiReaction.map((e) => {
-            if (e.sender._id.toString() === sender._id.toString()) {
-              return {...foundExit[0],emoji};
-            } else {
-              return e;
-            }
-          })
-          }
+              if (e.sender._id.toString() === sender._id.toString()) {
+                return { ...foundExit[0], emoji };
+              } else {
+                return e;
+              }
+            }),
+          };
         } else {
           return {
             ...message,
-            emojiReaction: message?.emojiReaction ? [...message?.emojiReaction, { sender, emoji }] : [{ sender, emoji }],
+            emojiReaction: message?.emojiReaction
+              ? [...message?.emojiReaction, { sender, emoji }]
+              : [{ sender, emoji }],
           };
         }
       } else {
         return message;
       }
     });
-
-
 
     // console.log("msgfound", msgfound);
     // await message.save();
@@ -100,12 +110,10 @@ exports.sendEmojiReaction = async (req, res) => {
     //   // console.log({ user, room, msg, data });
     //   req.app.io.to(roomId).emit("msgReceived", message);
     // });
-    const newMsg = msgfound.filter((e) => e._id.toString() === msgId)
-    req.app.io.to(roomId).emit("message", {type: 2, msgId,data: newMsg[0]});
+    const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
+    req.app.io.to(roomId).emit("message", { type: 2, msgId, data: newMsg[0] });
 
-    res
-      .status(200)
-      .json({ message: "Emoji sent successfully", status: true });
+    res.status(200).json({ message: "Emoji sent successfully", status: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -136,7 +144,7 @@ exports.getMessage = async (req, res) => {
     //   $push: { messages: message },
     // });
 
-    req.app.io.emit("getRoomUsersList", {roomId:id})
+    req.app.io.emit("getRoomUsersList", { roomId: id });
     // req.app.io.on("sendMessage", (user, room, msg) => {
     //   // const data = { user: { ...user }, room: { ...room }, message: msg };
     //   // console.log({ user, room, msg, data });
