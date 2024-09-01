@@ -4,6 +4,8 @@ const chatController = require('../controllers/chatController');
 
 router.post('/sendMessage', chatController.sendMessage);
 
+router.post('/sendEmojiReaction', chatController.sendEmojiReaction);
+
 router.get('/:id', chatController.getMessage);
 
 module.exports = router;
