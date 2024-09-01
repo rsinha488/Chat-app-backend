@@ -19,6 +19,7 @@ exports.sendMessage = async (req, res) => {
     const message = {
       _id: new mongoose.Types.ObjectId(),
       sender: user,
+      hashtagStatus: false,
       room: roomId,
       content: content,
       emojiReaction: [],
