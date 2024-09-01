@@ -16,7 +16,7 @@ exports.sendMessage = async (req, res) => {
       return res.status(404).json({ error: "User or room not found" });
     }
 
-    const message = {
+    let message = {
       _id: new mongoose.Types.ObjectId(),
       sender: user,
       hashtagStatus: false,
@@ -26,12 +26,15 @@ exports.sendMessage = async (req, res) => {
     };
 
     // const text = "#123abc! more text #456def, and #789ghi here";
-    const text = "#123abc! more text";
-    const match = text.match(/#([a-zA-Z0-9]+)/);
-    if (match) {
+    // const text = "#123abc! more text";
+    const match = content.match(/#([a-zA-Z0-9]+)/);
+    if (match?.[1]?.length>2) {
       console.log(match[1]); // Output: 123abc
-      message = { ...message, hashtagTitle: match[1] };
+      message = { ...message,
+        hashtagStatus: true, 
+        hashtagTitle: "#"+match[1] };
     }
+    console.log(message);
 
     // await message.save();
 
