@@ -31,7 +31,7 @@ function socketIO(server) {
     })
 
 
-    Chatlistener(socket)
+    Chatlistener(socket, io)
 
   });
 

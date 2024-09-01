@@ -5,45 +5,95 @@ const { getSocket } = require("../../sockets");
 
 const usersInRooms = {}; 
 
+// function getUsersBySocketIds(socketIds) {
+//   return socketIds.map(id => usersInRooms[id]);
+// }
+
+function getUserIdsByRoom(roomId) {
+  const data = Object.values(usersInRooms);
+  return [...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId))];
+}
+
+function removeUserIdsFromRoom(item, roomId) {
+  const data = Object.values(item);
+  return [...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId))];
+}
+
 exports.subscribeToRoom = async (req, res) => {
   try {
-    const socket = getSocket();
-    const { userId, roomId } = req.body;
+      const socket = getSocket();
+      const { userId, roomId } = req.body;
 
-    // Find the user and room
-    const user = await User.findById({_id: userId});
-    const room = await Room.findById({_id: roomId});
+      // Find the user and room
+      const user = await User.findById(userId);
+      const room = await Room.findById(roomId);
 
-    if (!user || !room) {
-      return res.status(404).json({ error: "User or room not found" });
-    }
+      if (!user || !room) {
+          return res.status(404).json({ error: "User or room not found" });
+      }
 
-    const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
+      const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
 
-    if (previousRoom && previousRoom !== roomId) {
-      socket.leave(previousRoom); // Leave the previous room
-      req.app.io.to(previousRoom).emit('MemberUpdate', {badges:true, content:`${user.name} has left the room`});
-      console.log(previousRoom , socket.id,"leave")
-    }
+      if (previousRoom && previousRoom.roomId !== roomId) {
+          req.app.io.to(previousRoom.roomId).emit('MemberUpdate', {
+              badges: true,
+              roomId: previousRoom.roomId,
+              content: `${user.name} has left the room`
+          });
+          console.log(previousRoom.roomId, socket.id, "left");
 
-    //Update userCount in room model
-    await Room.updateOne(
-      { _id: roomId },
-      { $inc: { userCount: 1 } } // Increment userCount by 1
-    );
-    console.log("Update Result:");
-    // Subscribe the user to the room
-    socket.join(roomId);
-    usersInRooms[socket.id] = roomId;
-    socket.userData = user; 
-    req.app.io.to(roomId).emit("MemberUpdate", {badges:true, content:`${user.name} has joined`});
-    
+          // Remove user from previous room
+          delete usersInRooms[socket.id];
+          
+          // Update the user list and room count for the previous room
+          const listUsers = getUserIdsByRoom(previousRoom.roomId);
+          const userList = listUsers.length > 0 ? await User.find({ _id: { $in: listUsers } }).exec() : [];
 
-    res.status(200).json({ message: "User subscribed to room successfully" });
+          await Room.updateOne(
+              { _id: previousRoom.roomId },
+              { $set: { userCount: userList.length } } // Set the userCount
+          );
+          req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
+              roomId: previousRoom.roomId,
+              data: userList
+          });
+          
+          socket.leave(previousRoom.roomId); // Leave the previous room
+      }
+
+      // Subscribe the user to the new room
+      socket.join(roomId);
+      usersInRooms[socket.id] = { userId, roomId };
+
+      // Update the user list and room count for the new room
+      const listUsers = getUserIdsByRoom(roomId);
+      const userList = listUsers.length > 0 ? await User.find({ _id: { $in: listUsers } }).exec() : [];
+
+      await Room.updateOne(
+          { _id: roomId },
+          { $set: { userCount: userList.length } } // Set the userCount
+      );
+      req.app.io.to(roomId).emit("Room_member_list", {
+          roomId,
+          data: userList
+      });
+      req.app.io.to(roomId).emit("MemberUpdate", {
+          badges: true,
+          roomId,
+          content: `${user.name} has joined`
+      });
+
+      // Get all clients in the room
+      // const clients = req.app.io.sockets.adapter.rooms.get(roomId) || new Set();
+      // const userIds = getUserIdsBySocketIds(Array.from(clients));
+
+      res.status(200).json({ message: "User subscribed to room successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+      console.error("Error subscribing to room:", error);
+      res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.createUser = async (req, res) => {
   const data = new User({
