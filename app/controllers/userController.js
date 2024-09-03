@@ -40,8 +40,7 @@ exports.createUser = async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
-    req.app.io.emit("userCreated", {...data,token});
-    res.status(200).json({dataToSave,token});
+    res.status(200).json({...dataToSave,token});
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
