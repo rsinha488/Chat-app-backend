@@ -5,10 +5,15 @@ const userController = require('../controllers/userController');
 
 router.get('/', userController.getUser);
 
-router.get('/:username', userController.getSingleUser);
+router.post('/', userController.createUser);
+
+router.post('/login',userController.userLogin);
+
+router.get('/:userId', userController.getUserDetail);
+
+router.put('/:userId', userController.updateUserDetail);
 
 router.post('/subscribe', userController.subscribeToRoom);
 
-router.post('/create', userController.createUser);
 
 module.exports = router;
