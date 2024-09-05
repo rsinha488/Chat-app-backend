@@ -35,7 +35,7 @@ exports.createUser = async (req, res) => {
 
     // JWT token creation with expiry
     const token = jwt.sign(
-      { userId: savedUser._id, userName: savedUser.userName },
+      { userId: dataToSave._id, userName: dataToSave.userName },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
