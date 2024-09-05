@@ -19,6 +19,23 @@ const userSchema = new mongoose.Schema({
   image: {
     type: String
   },
+  quizzesTaken: [
+    {
+      roomId: {
+        type: String,
+        required: true,
+      },
+      questionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Quiz',
+        required: true,
+      },
+      selectedOption: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
 });
 
 const User = mongoose.model('User', userSchema);
