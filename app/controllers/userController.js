@@ -3,109 +3,231 @@ const User = require("../models/user");
 const Room = require("../models/room");
 const { getSocket } = require("../../sockets");
 
-const usersInRooms = {}; 
+const bcrypt = require('bcryptjs');
 
-// function getUsersBySocketIds(socketIds) {
-//   return socketIds.map(id => usersInRooms[id]);
-// }
+const jwt = require('jsonwebtoken');
 
-function getUserIdsByRoom(roomId) {
-  const data = Object.values(usersInRooms);
-  return [...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId))];
-}
-
-function removeUserIdsFromRoom(item, roomId) {
-  const data = Object.values(item);
-  return [...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId))];
-}
-
-exports.subscribeToRoom = async (req, res) => {
-  try {
-      const socket = getSocket();
-      const { userId, roomId } = req.body;
-
-      // Find the user and room
-      const user = await User.findById(userId);
-      const room = await Room.findById(roomId);
-
-      if (!user || !room) {
-          return res.status(404).json({ error: "User or room not found" });
-      }
-
-      const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
-
-      if (previousRoom && previousRoom.roomId !== roomId) {
-          req.app.io.to(previousRoom.roomId).emit('MemberUpdate', {
-              badges: true,
-              roomId: previousRoom.roomId,
-              content: `${user.name} has left the room`
-          });
-          console.log(previousRoom.roomId, socket.id, "left");
-
-          // Remove user from previous room
-          delete usersInRooms[socket.id];
-          
-          // Update the user list and room count for the previous room
-          const listUsers = getUserIdsByRoom(previousRoom.roomId);
-          const userList = listUsers.length > 0 ? await User.find({ _id: { $in: listUsers } }).exec() : [];
-
-          await Room.updateOne(
-              { _id: previousRoom.roomId },
-              { $set: { userCount: userList.length } } // Set the userCount
-          );
-          req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
-              roomId: previousRoom.roomId,
-              data: userList
-          });
-          
-          socket.leave(previousRoom.roomId); // Leave the previous room
-      }
-
-      // Subscribe the user to the new room
-      socket.join(roomId);
-      usersInRooms[socket.id] = { userId, roomId };
-
-      // Update the user list and room count for the new room
-      const listUsers = getUserIdsByRoom(roomId);
-      const userList = listUsers.length > 0 ? await User.find({ _id: { $in: listUsers } }).exec() : [];
-
-      await Room.updateOne(
-          { _id: roomId },
-          { $set: { userCount: userList.length } } // Set the userCount
-      );
-      req.app.io.to(roomId).emit("Room_member_list", {
-          roomId,
-          data: userList
-      });
-      req.app.io.to(roomId).emit("MemberUpdate", {
-          badges: true,
-          roomId,
-          content: `${user.name} has joined`
-      });
-
-      // Get all clients in the room
-      // const clients = req.app.io.sockets.adapter.rooms.get(roomId) || new Set();
-      // const userIds = getUserIdsBySocketIds(Array.from(clients));
-
-      res.status(200).json({ message: "User subscribed to room successfully" });
-  } catch (error) {
-      console.error("Error subscribing to room:", error);
-      res.status(500).json({ error: error.message });
-  }
-};
-
+const usersInRooms = {};
+const JWT_SECRET = process.env.JWT_SECRET || 'ruchi_jwt_secret'; // Store this securely in environment variables
+const JWT_EXPIRY = process.env.JWT_EXPIRY||'1d'; // Token expiry duration
 
 exports.createUser = async (req, res) => {
+  const { userName, firstName, lastName, image, password } = req.body;
+
+   // Check if password is provided
+   if (!password) {
+    return res.status(400).json({ message: 'Password is required' });
+  }
+   // Hash the password
+   const hashedPassword = await bcrypt.hash(password, 10);
+
   const data = new User({
-    name: req.body.name,
-    username: req.body.username,
+    userName: userName,
+    firstName: firstName,
+    lastName: lastName,
+    image: image,
+    password: hashedPassword,
   });
   console.log({ data });
 
   try {
     const dataToSave = data.save();
-    req.app.io.emit("userCreated", data);
-    res.status(200).json(dataToSave);
+
+    // JWT token creation with expiry
+    const token = jwt.sign(
+      { userId: savedUser._id, userName: savedUser.userName },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+
+    res.status(200).json({...dataToSave,token});
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.userLogin = async (req, res) => {
+  const { userName, password } = req.body;
+
+  try {
+    if (!userName || !password) {
+      return res.status(400).json({ message: 'Username and password are required' });
+    }
+
+    const user = await User.findOne({ userName });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, userName: user.userName },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    );
+
+    // Send response with token
+    res.status(200).json({ user, token });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+function getUserIdsByRoom(roomId) {
+  const data = Object.values(usersInRooms);
+  return [
+    ...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId)),
+  ];
+}
+
+function removeUserIdsFromRoom(item, roomId) {
+  const data = Object.values(item);
+  return [
+    ...new Set(data.filter((e) => e.roomId === roomId).map((d) => d.userId)),
+  ];
+}
+
+exports.subscribeToRoom = async (req, res) => {
+  try {
+    const socket = getSocket();
+    const { userId, roomId } = req.body;
+
+    // Find the user and room
+    const user = await User.findById(userId);
+    const room = await Room.findById(roomId);
+
+    if (!user || !room) {
+      return res.status(404).json({ error: "User or room not found" });
+    }
+
+    const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
+
+    if (previousRoom && previousRoom.roomId !== roomId) {
+      req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
+        badges: true,
+        roomId: previousRoom.roomId,
+        content: `${user.name} has left the room`,
+      });
+      console.log(previousRoom.roomId, socket.id, "left");
+
+      // Remove user from previous room
+      delete usersInRooms[socket.id];
+
+      // Update the user list and room count for the previous room
+      const listUsers = getUserIdsByRoom(previousRoom.roomId);
+      const userList =
+        listUsers.length > 0
+          ? await User.find({ _id: { $in: listUsers } }).exec()
+          : [];
+
+      await Room.updateOne(
+        { _id: previousRoom.roomId },
+        { $set: { userCount: userList.length } } // Set the userCount
+      );
+      req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
+        roomId: previousRoom.roomId,
+        data: userList,
+      });
+
+      socket.leave(previousRoom.roomId); // Leave the previous room
+    }
+
+    // Subscribe the user to the new room
+    socket.join(roomId);
+    usersInRooms[socket.id] = { userId, roomId };
+
+    // Update the user list and room count for the new room
+    const listUsers = getUserIdsByRoom(roomId);
+    const userList =
+      listUsers.length > 0
+        ? await User.find({ _id: { $in: listUsers } }).exec()
+        : [];
+
+    await Room.updateOne(
+      { _id: roomId },
+      { $set: { userCount: userList.length } } // Set the userCount
+    );
+    req.app.io.to(roomId).emit("Room_member_list", {
+      roomId,
+      data: userList,
+    });
+    req.app.io.to(roomId).emit("MemberUpdate", {
+      badges: true,
+      roomId,
+      content: `${user.name} has joined`,
+    });
+
+    // Get all clients in the room
+    // const clients = req.app.io.sockets.adapter.rooms.get(roomId) || new Set();
+    // const userIds = getUserIdsBySocketIds(Array.from(clients));
+
+    res.status(200).json({ message: "User subscribed to room successfully" });
+  } catch (error) {
+    console.error("Error subscribing to room:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get user details by ID
+exports.getUserDetail = async (req, res) => {
+  const { userId } = req.params; 
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Exclude sensitive information like password from the response
+    const userDetail = {
+      _id: user._id,
+      userName: user.userName,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      image: user.image,
+      // Add other fields you want to expose
+    };
+
+    res.status(200).json(userDetail);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update user details by ID
+exports.updateUserDetail = async (req, res) => {
+  const { userId } = req.params; // Assuming _id is passed as a URL parameter
+  const { userName, firstName, lastName, image, password } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (userName) user.userName = userName;
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (image) user.image = image;
+
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    const updatedUser = await user.save();
+
+    req.app.io.emit('userUpdated', updatedUser);
+
+    res.status(200).json(updatedUser);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -115,21 +237,6 @@ exports.getUser = async (req, res) => {
   try {
     // const { userId } = req.body;
     const data = await User.find();
-    // const data = {
-    //   name: "shivam",
-    //   active: true,
-    // };
-    // req.app.io.emit("getUser", data);
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-exports.getSingleUser = async (req, res) => {
-  try {
-    const { username } = req.params;
-    const data = await User.find({ username});
     // const data = {
     //   name: "shivam",
     //   active: true,
@@ -194,14 +301,15 @@ exports.leaveRoom = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 exports.unsubscribeFromRoom = async (req, res) => {
   try {
     const socket = getSocket();
     const { userId, roomId } = req.body;
 
     // Find the user and room
-    const user = await User.findById({_id: userId});
-    const room = await Room.findById({_id: roomId});
+    const user = await User.findById({ _id: userId });
+    const room = await Room.findById({ _id: roomId });
 
     if (!user || !room) {
       return res.status(404).json({ error: "User or room not found" });
@@ -223,10 +331,17 @@ exports.unsubscribeFromRoom = async (req, res) => {
       delete usersInRooms[socket.id]; // Remove the user from the usersInRooms tracking
 
       // Notify other users in the room
-      req.app.io.to(roomId).emit('MemberUpdate', {badges:true, content:`${user.name} has left the room`});
-      console.log(roomId , socket.id,"leave");
+      req.app.io
+        .to(roomId)
+        .emit("MemberUpdate", {
+          badges: true,
+          content: `${user.name} has left the room`,
+        });
+      console.log(roomId, socket.id, "leave");
 
-      res.status(200).json({ message: "User unsubscribed from room successfully" });
+      res
+        .status(200)
+        .json({ message: "User unsubscribed from room successfully" });
     } else {
       res.status(400).json({ error: "User is not subscribed to this room" });
     }
