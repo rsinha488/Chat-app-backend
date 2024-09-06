@@ -10,7 +10,7 @@ exports.createQuiz = async (req, res) => {
     if (options.length < 2) {
       return res
         .status(400)
-        .json({ error: "At least two options are required." });
+        .json({ success:false,error: "At least two options are required." });
     }
 
     const quiz = new Quiz({
@@ -20,18 +20,18 @@ exports.createQuiz = async (req, res) => {
     });
 
     await quiz.save();
-    res.status(201).json(quiz);
+    res.status(201).json({success:true,data:quiz});
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({success:false, error: error.message });
   }
 };
 // Get all quizzes
 exports.getQuizzes = async (req, res) => {
   try {
     const quizzes = await Quiz.find();
-    res.status(200).json(quizzes);
+    res.status(200).json({success:true,data:quizzes});
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({success:false, error: error.message });
   }
 };
 // Update a quiz by ID
@@ -41,7 +41,7 @@ exports.updateQuiz = async (req, res) => {
     
         // Check if at least two options are provided
         if (options.length < 2) {
-          return res.status(400).json({ error: 'At least two options are required.' });
+          return res.status(400).json({ success:false,error: 'At least two options are required.' });
         }
     
         const quiz = await Quiz.findByIdAndUpdate(
@@ -50,73 +50,83 @@ exports.updateQuiz = async (req, res) => {
           { new: true, runValidators: true }
         );
     
-        if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
-        res.status(200).json(quiz);
+        if (!quiz) return res.status(404).json({success:false, error: 'Quiz not found' });
+        res.status(200).json({success:true,data:quiz});
       } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({success:false, error: error.message });
       }
 };
 // Delete a quiz by ID
 exports.deleteQuiz = async (req, res) => {
     try {
         const quiz = await Quiz.findByIdAndDelete(req.params.id);
-        if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
-        res.status(200).json({ message: 'Quiz deleted successfully' });
+        if (!quiz) return res.status(404).json({success:false, error: 'Quiz not found' });
+        res.status(200).json({ success:true,message: 'Quiz deleted successfully' });
       } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success:false,error: error.message });
       }
 };
 // Get all quiz by RoomId
 exports.getQuizByRoomId = async (req, res) => {
   try {
     const quiz = await Quiz.find({ roomId: req.params.roomId });
-    if (!quiz) return res.status(404).json({ error: "This room has no Quiz yet!" });
-    res.status(200).json(quiz);
+    if (!quiz) return res.status(404).json({success:false, error: "This room has no Quiz yet!" });
+    res.status(200).json({success:true,data:quiz});
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({success:false, error: error.message });
   }
 };
 
 // take quiz
 exports.takeQuizzes=async(req,res)=>{
-    try {
-        const { userId, roomId, questionId, selectedOption } = req.body;
-    
-        // Validate input
-        if (!userId || !roomId || !questionId || !selectedOption) {
-          return res.status(400).json({ error: 'All fields are required' });
-        }
-    
-        // Find the quiz question to validate the selected option
-        const quiz = await Quiz.findById({_id:questionId});
-        if (!quiz) {
-          return res.status(404).json({ error: 'Quiz question not found' });
-        }
-    
-        // Check if the selected option exists in the quiz options
-        const optionExists = quiz.options.some(option => option.text === selectedOption);
-        if (!optionExists) {
-          return res.status(400).json({ error: 'Invalid option selected' });
-        }
-    
-        // Find the user and update their quizzesTaken array
-        const user = await User.findById(userId);
-        if (!user) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-    
-        // Add the quiz attempt to the user's quizzesTaken
-        user.quizzesTaken.push({
-          roomId,
-          questionId,
-          selectedOption,
-        });
-    
-        // Save the updated user document
-        await user.save();
-    
-        res.status(200).json({ message: 'Quiz response recorded successfully', user });
-      } catch (error) {
-        res.status(500).json({ error: error.message });
-      }   
+  try {
+    const { userId, roomId, quizId, optionsSelected } = req.body;
+
+    if (!userId || !roomId || !quizId || optionsSelected === undefined) {
+      return res.status(400).json({ success:false,message: "Invalid input" });
+    }
+
+    // Fetch the quiz by quizId and roomId
+    const quiz = await Quiz.findOne({ _id: quizId, roomId });
+
+    if (!quiz) {
+      return res.status(404).json({success:false, message: "Quiz not found" });
+    }
+
+    // Check if user has already answered this quiz
+    const userAnswerIndex = quiz.totalUserAnsweredDetail.findIndex(
+      (detail) => detail.userId.toString() === userId
+    );
+
+    if (userAnswerIndex !== -1) {
+      return res.status(400).json({ success:false,message: "User has already answered this quiz" });
+    }
+
+    // Update the user's answer details
+    quiz.totalUserAnsweredDetail.push({
+      userId,
+      optionClicked: optionsSelected,
+    });
+
+    // Increment the total number of users who answered
+    quiz.totalUserAnswered += 1;
+
+    // Update the count of how many times each option has been selected
+    if (quiz.optionsClickedByUsers.has(optionsSelected.toString())) {
+      quiz.optionsClickedByUsers.set(
+        optionsSelected.toString(),
+        quiz.optionsClickedByUsers.get(optionsSelected.toString()) + 1
+      );
+    } else {
+      quiz.optionsClickedByUsers.set(optionsSelected.toString(), 1);
+    }
+
+    // Save the updated quiz
+    await quiz.save();
+
+    res.status(200).json({ success:true,message: "Answer submitted successfully" });
+  } catch (error) {
+    console.error("Error submitting answer:", error);
+    res.status(500).json({ success:false, message: "Server error" });
+  } 
 }

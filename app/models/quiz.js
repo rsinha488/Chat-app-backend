@@ -1,10 +1,14 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const quizSchema = new mongoose.Schema({
+  status: { type: Boolean, required: true, default: true },
   question: {
     type: String,
     required: true,
     trim: true,
+  },
+  endTime: {
+    type: String,
   },
   options: {
     type: [
@@ -13,7 +17,7 @@ const quizSchema = new mongoose.Schema({
         // isCorrect: { type: Boolean, required: true },
       },
     ],
-    validate: [(val) => val.length >= 2, 'At least two options are required'],
+    validate: [(val) => val.length >= 2, "At least two options are required"],
   },
   optionsClickedByUsers: {
     type: Map,
@@ -24,12 +28,20 @@ const quizSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  totalUserAnsweredDetail: {
+    type: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        optionClicked: { type: Number, default: 0 },
+      },
+    ],
+  },
   roomId: {
     type: String,
     required: true,
   },
 });
 
-const Quiz = mongoose.model('Quiz', quizSchema);
+const Quiz = mongoose.model("Quiz", quizSchema);
 
 module.exports = Quiz;
