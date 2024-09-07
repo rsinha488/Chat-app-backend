@@ -3,36 +3,6 @@ const Quiz = require("../models/quiz");
 const User = require("../models/user");
 const cron = require("node-cron");
 
-// Function to update quiz status to false after the endTime
-async function updateQuizStatus(quizId) {
-  try {
-    await Quiz.findByIdAndUpdate(
-      { _id: quizId },
-      { status: false, completed: true }
-    );
-    console.log(`Quiz ${quizId} status set to false.`);
-  } catch (error) {
-    console.error("Failed to update quiz status:", error);
-  }
-}
-
-// Scheduler function that starts the scheduler based on current time and endTime
-async function scheduleQuizEnd(quiz) {
-  const currentTime = new Date();
-  const endTime = new Date(quiz.endTime);
-
-  // Calculate time difference in milliseconds
-  const timeDifference = endTime - currentTime;
-
-  if (timeDifference > 0) {
-    // Schedule the task to run at the endTime
-    setTimeout(() => updateQuizStatus(quiz._id), timeDifference);
-    console.log(
-      `Scheduled to set quiz ${quiz._id} status to false at ${endTime}`
-    );
-  }
-}
-
 //create quiz question
 exports.createQuiz = async (req, res) => {
   try {
@@ -88,9 +58,9 @@ exports.updateQuiz = async (req, res) => {
       new: true,
       runValidators: true,
     });
-    //schedule quiz
+    // //schedule quiz
     if (endTime && quiz) {
-      scheduleQuizEnd(quiz);
+      scheduleQuizStatusUpdate(quiz);
     }
 
     if (!quiz)
@@ -188,27 +158,43 @@ exports.takeQuizzes = async (req, res) => {
   }
 };
 
-// Initialize scheduler for all quizzes that are still active
-async function initializeScheduler() {
-  try {
-    // Find all quizzes that have status true and endTime greater than current time
-    const activeQuizzes = await Quiz.find({
-      status: true,
-      endTime: { $gt: new Date() },
-    });
 
-    // Schedule end time status update for each active quiz
-    activeQuizzes.forEach(scheduleQuizEnd);
+// Function to update quiz status to false
+async function updateQuizStatus(quiz) {
+  try {
+    await Quiz.findByIdAndUpdate(quiz._id, { status: false, completed: true });
+    console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
-    console.error("Error initializing scheduler:", error);
+    console.error('Failed to update quiz status:', error);
   }
 }
 
-// Start the scheduler initialization
-initializeScheduler();
+// Function to calculate the difference and set the timeout
+function scheduleQuizStatusUpdate(quiz) {
+  const currentTime = new Date();
+  const endTime = new Date(quiz.endTime);
+  const timeDifference = endTime - currentTime;
 
-// Optionally, use cron to periodically check and schedule quizzes
-cron.schedule("0 * * * *", () => {
-  console.log("Checking for quizzes to schedule...");
-  initializeScheduler();
+  // Only schedule if endTime is in the future
+  if (timeDifference > 0) {
+    setTimeout(() => updateQuizStatus(quiz), timeDifference);
+    console.log(`Scheduled status update for quiz ${quiz._id} in ${timeDifference}ms.`);
+  } else {
+    console.log(`Quiz ${quiz._id} endTime has already passed.`);
+  }
+}
+
+// Cron job to check active quizzes every minute
+cron.schedule('0 * * * *', async () => {
+  console.log('Checking quizzes for scheduling status updates...');
+
+  try {
+    // Find all active quizzes with endTime in the future
+    const activeQuizzes = await Quiz.find({ status: true, endTime: { $gt: new Date() } });
+
+    // Schedule status update for each active quiz
+    activeQuizzes.forEach(scheduleQuizStatusUpdate);
+  } catch (error) {
+    console.error('Error checking quizzes:', error);
+  }
 });

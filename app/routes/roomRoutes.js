@@ -5,6 +5,7 @@ const roomController = require('../controllers/roomController');
 const { authenticate } = require('../utils/authenticateUser');
 
 router.post('/rooms', roomController.createRoom);
-router.get('/',authenticate,roomController.getRoomsList);
+// router.get('/',authenticate,roomController.getRoomsList);
+router.get('/',roomController.getRoomsList);
 
 module.exports = router;
