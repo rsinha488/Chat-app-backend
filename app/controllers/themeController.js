@@ -2,25 +2,27 @@ const DataModel = require("../models/theme");
 
 // Create a new data entry
 exports.createData = async (req, res) => {
-    console.log("hhhhhhh",req.body)
   try {
     const newData = new DataModel(req.body);
     console.log("data", req.body);
     await newData.save();
-    res.status(201).json(newData);
+    res.status(201).json({ success: true, ...newData });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
 // Get data by ID
 exports.getDataById = async (req, res) => {
   try {
-    const data = await DataModel.findById({_id: req.params.id});
-    if (!data) return res.status(404).json({ message: "Data not found" });
-    res.json(data);
+    const data = await DataModel.findById({ _id: req.params.id });
+    if (!data)
+      return res
+        .status(404)
+        .json({ success: false, message: "Data not found" });
+    res.json({ success: true, ...data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -33,10 +35,12 @@ exports.updateDataById = async (req, res) => {
       { new: true }
     );
     if (!updatedData)
-      return res.status(404).json({ message: "Data not found" });
-    res.json(updatedData);
+      return res
+        .status(404)
+        .json({ success: false, message: "Data not found" });
+    res.json({ success: true, ...updatedData });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -45,10 +49,10 @@ exports.deleteDataById = async (req, res) => {
   try {
     const deletedData = await DataModel.findByIdAndDelete(req.params.id);
     if (!deletedData)
-      return res.status(404).json({ message: "Data not found" });
-    res.json({ message: "Data deleted" });
+      return res.status(404).json({success:false, message: "Data not found" });
+    res.json({success:true, message: "Data deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({success:false, message: error.message });
   }
 };
 
@@ -56,8 +60,8 @@ exports.deleteDataById = async (req, res) => {
 exports.getAllData = async (req, res) => {
   try {
     const allData = await DataModel.find();
-    res.json(allData);
+    res.json({success:true,...allData});
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({success:false, message: error.message });
   }
 };
