@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  status:{
+    type: Boolean,
+    default:"ACTIVE" //TEMPORARY_BLOCKED, BLOCKED
+  },
   firstName: {
     type: String,
     required: true

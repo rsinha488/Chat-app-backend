@@ -1,15 +1,14 @@
 const mongoose = require("mongoose");
 
 const quizSchema = new mongoose.Schema({
-  status: { type: Boolean, required: true, default: true },
+  status: { type: Boolean, required: true, default: false },
+  completed:{ type: Boolean, required: true, default: false },//quiz  completed or not 
   question: {
     type: String,
     required: true,
     trim: true,
   },
-  endTime: {
-    type: String,
-  },
+  endTime: { type: Date },
   options: {
     type: [
       {

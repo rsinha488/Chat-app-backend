@@ -13,7 +13,9 @@ exports.sendMessage = async (req, res) => {
     const user = await User.findById({ _id: userId });
     const room = await Room.findById({ _id: roomId });
     if (!user || !room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
 
     let message = {
@@ -28,11 +30,13 @@ exports.sendMessage = async (req, res) => {
     // const text = "#123abc! more text #456def, and #789ghi here";
     // const text = "#123abc! more text";
     const match = content.match(/#([a-zA-Z0-9]+)/);
-    if (match?.[1]?.length>2) {
+    if (match?.[1]?.length > 2) {
       console.log(match[1]); // Output: 123abc
-      message = { ...message,
-        hashtagStatus: true, 
-        hashtagTitle: "#"+match[1] };
+      message = {
+        ...message,
+        hashtagStatus: true,
+        hashtagTitle: "#" + match[1],
+      };
     }
     console.log(message);
 
@@ -53,9 +57,13 @@ exports.sendMessage = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "Message sent successfully", status: true });
+      .json({
+        success: true,
+        message: "Message sent successfully",
+        status: true,
+      });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -67,7 +75,9 @@ exports.sendEmojiReaction = async (req, res) => {
     // Find the user and room
     const room = await Room.findById({ _id: roomId });
     if (!room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
 
     const msgfound = room.messages.map((message) => {
@@ -116,9 +126,15 @@ exports.sendEmojiReaction = async (req, res) => {
     const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
     req.app.io.to(roomId).emit("message", { type: 2, msgId, data: newMsg[0] });
 
-    res.status(200).json({ message: "Emoji sent successfully", status: true });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Emoji sent successfully",
+        status: true,
+      });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -130,7 +146,9 @@ exports.getMessage = async (req, res) => {
     // const user = await User.findById({_id: userId});
     const room = await Room.findById({ _id: id });
     if (!room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
 
     // const message = {
@@ -158,8 +176,12 @@ exports.getMessage = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "all room messages successfully", data: room.messages });
+      .json({
+        success: true,
+        message: "all room messages successfully",
+        data: room.messages,
+      });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
