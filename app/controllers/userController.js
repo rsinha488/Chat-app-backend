@@ -85,7 +85,8 @@ exports.userLogin = async (req, res) => {
     );
 
     // Send response with token
-    res.status(200).json({ success: true, user, token });
+    res.status(200).json({ success: true, ...user, token });
+
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
