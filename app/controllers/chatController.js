@@ -55,13 +55,11 @@ exports.sendMessage = async (req, res) => {
 
     req.app.io.to(roomId).emit("message", message);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Message sent successfully",
-        status: true,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Message sent successfully",
+      status: true,
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -126,13 +124,11 @@ exports.sendEmojiReaction = async (req, res) => {
     const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
     req.app.io.to(roomId).emit("message", { type: 2, msgId, data: newMsg[0] });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Emoji sent successfully",
-        status: true,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Emoji sent successfully",
+      status: true,
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -145,7 +141,7 @@ exports.getMessage = async (req, res) => {
 
     // Find the room by ID
     const room = await Room.findById(id).populate({
-      path: 'messages',
+      path: "messages",
       options: {
         sort: { _id: -1 }, // Sort by newest messages first
         skip: (page - 1) * limit,

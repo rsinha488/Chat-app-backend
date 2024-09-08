@@ -22,7 +22,7 @@ exports.createQuiz = async (req, res) => {
     });
 
     await quiz.save();
-    res.status(201).json({ success: true, ...quiz });
+    res.status(201).json({ success: true, data:quiz });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -38,7 +38,7 @@ exports.updateDataById = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Data not found" });
-    res.json({ success: true, ...updatedData });
+    res.json({ success: true, data: updatedData });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -49,10 +49,12 @@ exports.deleteDataById = async (req, res) => {
   try {
     const deletedData = await DataModel.findByIdAndDelete(req.params.id);
     if (!deletedData)
-      return res.status(404).json({success:false, message: "Data not found" });
-    res.json({success:true, message: "Data deleted" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Data not found" });
+    res.json({ success: true, message: "Data deleted" });
   } catch (error) {
-    res.status(500).json({success:false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -60,8 +62,8 @@ exports.deleteDataById = async (req, res) => {
 exports.getAllData = async (req, res) => {
   try {
     const allData = await DataModel.find();
-    res.json({success:true,...allData});
+    res.json({ success: true, data: allData });
   } catch (error) {
-    res.status(500).json({success:false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
