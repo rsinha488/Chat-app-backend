@@ -42,7 +42,7 @@ exports.createUser = async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
-    res.status(200).json({ success: true, ...dataToSave, token });
+    res.status(200).json({ success: true, data:dataToSave, token });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -85,8 +85,7 @@ exports.userLogin = async (req, res) => {
     );
 
     // Send response with token
-    res.status(200).json({ success: true, ...user, token });
-
+    res.status(200).json({ success: true, data: {user, token} });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -208,7 +207,7 @@ exports.getUserDetail = async (req, res) => {
       // Add other fields you want to expose
     };
 
-    res.status(200).json({ success: true, ...userDetail });
+    res.status(200).json({ success: true, data:userDetail });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -241,7 +240,7 @@ exports.updateUserDetail = async (req, res) => {
 
     req.app.io.emit("userUpdated", updatedUser);
 
-    res.status(200).json({ success: true, ...updatedUser });
+    res.status(200).json({ success: true, data:updatedUser });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -256,7 +255,7 @@ exports.getUser = async (req, res) => {
     //   active: true,
     // };
     // req.app.io.emit("getUser", data);
-    res.status(200).json({ success: true, ...data });
+    res.status(200).json({ success: true, data:data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
