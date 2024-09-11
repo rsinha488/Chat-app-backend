@@ -1,7 +1,10 @@
 // quizController.js
+const { socketIO } = require("../../sockets");
 const Quiz = require("../models/quiz");
 const User = require("../models/user");
 const cron = require("node-cron");
+
+const io=socketIO();
 
 //create quiz question
 exports.createQuiz = async (req, res) => {
@@ -149,6 +152,8 @@ exports.takeQuizzes = async (req, res) => {
     // Save the updated quiz
     await quiz.save();
 
+    io.to(roomId).emit("takeQuizzes", quiz)
+
     res
       .status(200)
       .json({ success: true, message: "Answer submitted successfully" });
@@ -163,6 +168,9 @@ exports.takeQuizzes = async (req, res) => {
 async function updateQuizStatus(quiz) {
   try {
     await Quiz.findByIdAndUpdate(quiz._id, { status: false, completed: true });
+    
+    io.to(quiz.roomId).emit("updateQuizStatus", quiz)
+   
     console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
     console.error('Failed to update quiz status:', error);
