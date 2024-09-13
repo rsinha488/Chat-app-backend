@@ -3,23 +3,25 @@ const User = require("../models/user");
 const Room = require("../models/room");
 const { getSocket } = require("../../sockets");
 
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const usersInRooms = {};
-const JWT_SECRET = process.env.JWT_SECRET || 'ruchi_jwt_secret'; // Store this securely in environment variables
-const JWT_EXPIRY = process.env.JWT_EXPIRY||'1d'; // Token expiry duration
+const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
+const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; // Token expiry duration
 
 exports.createUser = async (req, res) => {
   const { userName, firstName, lastName, image, password } = req.body;
 
-   // Check if password is provided
-   if (!password) {
-    return res.status(400).json({ message: 'Password is required' });
+  // Check if password is provided
+  if (!password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Password is required" });
   }
-   // Hash the password
-   const hashedPassword = await bcrypt.hash(password, 10);
+  // Hash the password
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   const data = new User({
     userName: userName,
@@ -35,14 +37,14 @@ exports.createUser = async (req, res) => {
 
     // JWT token creation with expiry
     const token = jwt.sign(
-      { userId: savedUser._id, userName: savedUser.userName },
+      { userId: dataToSave._id, userName: dataToSave.userName },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
 
-    res.status(200).json({...dataToSave,token});
+    res.status(200).json({ success: true, data:dataToSave, token });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -51,19 +53,28 @@ exports.userLogin = async (req, res) => {
 
   try {
     if (!userName || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Username and password are required",
+        });
     }
 
     const user = await User.findOne({ userName });
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid username or password" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid username or password" });
     }
 
     // Generate JWT token
@@ -74,9 +85,9 @@ exports.userLogin = async (req, res) => {
     );
 
     // Send response with token
-    res.status(200).json({ user, token });
+    res.status(200).json({ success: true, data: {user, token} });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -104,7 +115,9 @@ exports.subscribeToRoom = async (req, res) => {
     const room = await Room.findById(roomId);
 
     if (!user || !room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
 
     const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
@@ -164,26 +177,24 @@ exports.subscribeToRoom = async (req, res) => {
       content: `${user.name} has joined`,
     });
 
-    // Get all clients in the room
-    // const clients = req.app.io.sockets.adapter.rooms.get(roomId) || new Set();
-    // const userIds = getUserIdsBySocketIds(Array.from(clients));
-
-    res.status(200).json({ message: "User subscribed to room successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "User subscribed to room successfully" });
   } catch (error) {
     console.error("Error subscribing to room:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 // Get user details by ID
 exports.getUserDetail = async (req, res) => {
-  const { userId } = req.params; 
+  const { userId } = req.params;
 
   try {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Exclude sensitive information like password from the response
@@ -196,9 +207,9 @@ exports.getUserDetail = async (req, res) => {
       // Add other fields you want to expose
     };
 
-    res.status(200).json(userDetail);
+    res.status(200).json({ success: true, data:userDetail });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -211,7 +222,9 @@ exports.updateUserDetail = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     if (userName) user.userName = userName;
@@ -225,11 +238,11 @@ exports.updateUserDetail = async (req, res) => {
 
     const updatedUser = await user.save();
 
-    req.app.io.emit('userUpdated', updatedUser);
+    req.app.io.emit("userUpdated", updatedUser);
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({ success: true, data:updatedUser });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -242,9 +255,9 @@ exports.getUser = async (req, res) => {
     //   active: true,
     // };
     // req.app.io.emit("getUser", data);
-    res.status(200).json(data);
+    res.status(200).json({ success: true, data:data });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -257,7 +270,9 @@ exports.leaveRoom = async (req, res) => {
     const room = await Room.find({ name: roomname });
 
     if (!user || !room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
     //Update userCount in room model
     const result = await Room.updateOne(
@@ -296,9 +311,11 @@ exports.leaveRoom = async (req, res) => {
 
     // await user.save();
 
-    res.status(200).json({ message: "User subscribed to room successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "User subscribed to room successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -312,7 +329,9 @@ exports.unsubscribeFromRoom = async (req, res) => {
     const room = await Room.findById({ _id: roomId });
 
     if (!user || !room) {
-      return res.status(404).json({ error: "User or room not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
     }
 
     const currentRoom = usersInRooms[socket.id]; // Get the current room of the user
@@ -331,21 +350,24 @@ exports.unsubscribeFromRoom = async (req, res) => {
       delete usersInRooms[socket.id]; // Remove the user from the usersInRooms tracking
 
       // Notify other users in the room
-      req.app.io
-        .to(roomId)
-        .emit("MemberUpdate", {
-          badges: true,
-          content: `${user.name} has left the room`,
-        });
+      req.app.io.to(roomId).emit("MemberUpdate", {
+        badges: true,
+        content: `${user.name} has left the room`,
+      });
       console.log(roomId, socket.id, "leave");
 
       res
         .status(200)
-        .json({ message: "User unsubscribed from room successfully" });
+        .json({
+          success: true,
+          message: "User unsubscribed from room successfully",
+        });
     } else {
-      res.status(400).json({ error: "User is not subscribed to this room" });
+      res
+        .status(400)
+        .json({ success: false, error: "User is not subscribed to this room" });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
