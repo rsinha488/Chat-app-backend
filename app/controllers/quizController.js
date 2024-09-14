@@ -4,7 +4,13 @@ const Quiz = require("../models/quiz");
 const User = require("../models/user");
 const cron = require("node-cron");
 
-const io=socketIO();
+const io = socketIO();
+
+//TYPES
+// QUIZ_STARTED
+// QUIZ_DELETE
+// QUIZ_STATUS_UPDATED
+// QUIZ_TAKE_QUIZ
 
 //create quiz question
 exports.createQuiz = async (req, res) => {
@@ -25,7 +31,7 @@ exports.createQuiz = async (req, res) => {
     });
 
     await quiz.save();
-    res.status(201).json({ success: true, data:quiz });
+    res.status(201).json({ success: true, data: quiz });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -42,19 +48,24 @@ exports.getQuizzes = async (req, res) => {
 // Update a quiz by ID
 exports.updateQuiz = async (req, res) => {
   try {
-    const { question, options, roomId, endTime } = req.body;
+    const {  roomId, endTime } = req.body; 
+    let data;
 
-    // Check if at least two options are provided
-    if (options.length < 2) {
+    const currentTime = new Date();
+    const endTime1 = new Date(endTime);
+    const timeDifference = endTime1 - currentTime;
+    // Only schedule if endTime is in the future
+    if (timeDifference <= 0) {
+      console.log(`Quiz ${quiz._id} endTime has already passed.`);
       return res
         .status(400)
-        .json({ success: false, error: "At least two options are required." });
+        .json({ success: false, error: `Quiz ${quiz._id} endTime has already passed.` });
     }
-    let data;
+
     if (endTime) {
-      data = { question, options, roomId, endTime, status: true };
+      data = {  roomId, endTime, status: true };
     } else {
-      data = { question, options, roomId, endTime };
+      data = {  roomId, endTime };
     }
 
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, data, {
@@ -68,7 +79,11 @@ exports.updateQuiz = async (req, res) => {
 
     if (!quiz)
       return res.status(404).json({ success: false, error: "Quiz not found" });
+    
+    //type QUIZ FOR QUIZ
+    req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
     res.status(200).json({ success: true, data: quiz });
+
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -79,6 +94,14 @@ exports.deleteQuiz = async (req, res) => {
     const quiz = await Quiz.findByIdAndDelete(req.params.id);
     if (!quiz)
       return res.status(404).json({ success: false, error: "Quiz not found" });
+
+    //type QUIZ FOR QUIZ
+    req.app.io.to(quiz.roomId).emit("message", {
+      type: "QUIZ_DELETE",
+      roomId: quiz.roomId,
+      data: quiz,
+    });
+
     res
       .status(200)
       .json({ success: true, message: "Quiz deleted successfully" });
@@ -152,7 +175,10 @@ exports.takeQuizzes = async (req, res) => {
     // Save the updated quiz
     await quiz.save();
 
-    io.to(roomId).emit("takeQuizzes", quiz)
+    // io.to(roomId).emit("takeQuizzes", quiz);
+
+    //type QUIZ FOR QUIZ
+    req.app.io.to(roomId).emit("message", { type: "QUIZ_TAKE_QUIZ", roomId, data: quiz });
 
     res
       .status(200)
@@ -163,17 +189,22 @@ exports.takeQuizzes = async (req, res) => {
   }
 };
 
-
 // Function to update quiz status to false
 async function updateQuizStatus(quiz) {
   try {
-    await Quiz.findByIdAndUpdate(quiz._id, { status: false, completed: true });
-    
-    io.to(quiz.roomId).emit("updateQuizStatus", quiz)
-   
+    const data = await Quiz.findByIdAndUpdate(
+      quiz._id,
+      { status: false, completed: true },
+      { new: true } // This option returns the updated document
+    );
+
+    // io.to(quiz.roomId).emit("updateQuizStatus", quiz)
+    //type QUIZ FOR QUIZ
+    io.to(quiz.roomId).emit("message", { type: "QUIZ_STATUS_UPDATED", roomId, data: data });
+
     console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
-    console.error('Failed to update quiz status:', error);
+    console.error("Failed to update quiz status:", error);
   }
 }
 
@@ -186,23 +217,28 @@ function scheduleQuizStatusUpdate(quiz) {
   // Only schedule if endTime is in the future
   if (timeDifference > 0) {
     setTimeout(() => updateQuizStatus(quiz), timeDifference);
-    console.log(`Scheduled status update for quiz ${quiz._id} in ${timeDifference}ms.`);
+    console.log(
+      `Scheduled status update for quiz ${quiz._id} in ${timeDifference}ms.`
+    );
   } else {
     console.log(`Quiz ${quiz._id} endTime has already passed.`);
   }
 }
 
 // Cron job to check active quizzes every minute
-cron.schedule('0 * * * *', async () => {
-  console.log('Checking quizzes for scheduling status updates...');
+cron.schedule("0 * * * *", async () => {
+  console.log("Checking quizzes for scheduling status updates...");
 
   try {
     // Find all active quizzes with endTime in the future
-    const activeQuizzes = await Quiz.find({ status: true, endTime: { $gt: new Date() } });
+    const activeQuizzes = await Quiz.find({
+      status: true,
+      endTime: { $gt: new Date() },
+    });
 
     // Schedule status update for each active quiz
     activeQuizzes.forEach(scheduleQuizStatusUpdate);
   } catch (error) {
-    console.error('Error checking quizzes:', error);
+    console.error("Error checking quizzes:", error);
   }
 });
