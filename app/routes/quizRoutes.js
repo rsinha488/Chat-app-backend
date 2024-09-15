@@ -10,9 +10,11 @@ router.post('/', quizController.createQuiz);
 // take quiz and store users and quiz info
 router.post('/takeQuiz',quizController.takeQuizzes);
 // Get all quiz by RoomId
-router.get('/:roomId',quizController.getQuizByRoomId);
+router.get('/rid=:roomId',quizController.getQuizByRoomId);
 //update Quiz by _id
 router.put('/:id',quizController.updateQuiz);
 // Delete a quiz by ID
 router.delete('/:id',quizController.deleteQuiz);
+//Update quiz row
+router.put('/updateQuizRow/:id',quizController.updateQuizRow)
 module.exports = router;

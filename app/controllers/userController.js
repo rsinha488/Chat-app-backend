@@ -1,6 +1,7 @@
 // userController.js
 const User = require("../models/user");
 const Room = require("../models/room");
+const Quiz = require("../models/quiz");
 const { getSocket } = require("../../sockets");
 
 const bcrypt = require("bcryptjs");
@@ -43,7 +44,7 @@ exports.createUser = async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
-    res.status(200).json({ success: true, data:dataToSave, token });
+    res.status(200).json({ success: true, data: dataToSave, token });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -54,12 +55,10 @@ exports.userLogin = async (req, res) => {
 
   try {
     if (!userName || !password) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Username and password are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required",
+      });
     }
 
     const user = await User.findOne({ userName });
@@ -86,7 +85,7 @@ exports.userLogin = async (req, res) => {
     );
 
     // Send response with token
-    res.status(200).json({ success: true, data: {user, token} });
+    res.status(200).json({ success: true, data: { user, token } });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -110,6 +109,29 @@ exports.subscribeToRoom = async (req, res) => {
   try {
     const socket = getSocket();
     const { userId, roomId } = req.body;
+
+    //Find active quiz
+    let quiz = await Quiz.find({
+      "room.id": roomId,
+      status:true
+    });
+    console.log({ quiz });
+    let quizData
+    if(quiz)
+      quizData=quiz[0]
+
+    const currentTime = new Date();
+    const endTime = new Date(quizData.endTime);
+    const timeDifference = endTime - currentTime;
+    // Only schedule if endTime is in the future
+    if (timeDifference > 0) {
+      console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
+      //type QUIZ FOR QUIZ
+      req.app.io
+        .to(roomId)
+        .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
+    }
+    // ===============
 
     // Find the user and room
     const user = await User.findById(userId);
@@ -220,7 +242,7 @@ exports.getUserDetail = async (req, res) => {
       // Add other fields you want to expose
     };
 
-    res.status(200).json({ success: true, data:userDetail });
+    res.status(200).json({ success: true, data: userDetail });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -253,7 +275,7 @@ exports.updateUserDetail = async (req, res) => {
 
     req.app.io.emit("userUpdated", updatedUser);
 
-    res.status(200).json({ success: true, data:updatedUser });
+    res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -268,7 +290,7 @@ exports.getUser = async (req, res) => {
     //   active: true,
     // };
     // req.app.io.emit("getUser", data);
-    res.status(200).json({ success: true, data:data });
+    res.status(200).json({ success: true, data: data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -369,12 +391,10 @@ exports.unsubscribeFromRoom = async (req, res) => {
       });
       console.log(roomId, socket.id, "leave");
 
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: "User unsubscribed from room successfully",
-        });
+      res.status(200).json({
+        success: true,
+        message: "User unsubscribed from room successfully",
+      });
     } else {
       res
         .status(400)
