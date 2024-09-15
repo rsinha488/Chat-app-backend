@@ -112,7 +112,7 @@ exports.deleteQuiz = async (req, res) => {
 // Get all quiz by RoomId
 exports.getQuizByRoomId = async (req, res) => {
   try {
-    const quiz = await Quiz.find({ roomId: req.params.roomId });
+    const quiz = await Quiz.find({ "room.id": req.params.roomId });
     if (!quiz)
       return res
         .status(404)
@@ -207,6 +207,70 @@ async function updateQuizStatus(quiz) {
     console.error("Failed to update quiz status:", error);
   }
 }
+// =========
+// Update quiz record
+// exports.updateQuizRow = async (req, res) => {
+//   const { id } = req.params;  
+//   console.log(id)
+//   const data = { ...req.body };
+//   // Prevent updating the _id field
+//   delete data._id;
+//   try {
+//     const quiz = await Quiz.findByIdAndUpdate({_id:req.params.id}, {...data}, {
+//       new: true,
+//       runValidators: true,
+//     });
+
+//     if (!quiz)
+//       return res.status(404).json({ success: false, error: "Quiz not found" });
+    
+//     //type QUIZ FOR QUIZ
+//     req.app.io.to(req.body.room.id).emit("message", { type: "QUIZ_ROW_UPDATED", roomId: req.body.room.id, data: quiz });
+//     res.status(200).json({ success: true, data: quiz });
+
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// };
+exports.updateQuizRow = async (req, res) => {
+  const { id } = req.params;
+
+  const data = { ...req.body };
+
+  // Prevent updating the _id field
+  delete data._id;
+
+  try {
+    const quiz = await Quiz.findByIdAndUpdate(
+      id,  // Use the id directly
+      { ...data },
+      {
+        new: true,  // Return the updated document
+        runValidators: true,  // Validate the data before updating
+      }
+    );
+
+    if (!quiz) {
+      return res.status(404).json({ success: false, error: "Quiz not found" });
+    }
+
+    // Safely access req.body.room.id using optional chaining
+    const roomId = req.body?.room?.id;
+    if (roomId) {
+      req.app.io.to(roomId).emit("message", {
+        type: "QUIZ_ROW_UPDATED",
+        roomId: roomId,
+        data: quiz,
+      });
+    }
+
+    return res.status(200).json({ success: true, data: quiz });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ===========
 
 // Function to calculate the difference and set the timeout
 function scheduleQuizStatusUpdate(quiz) {
