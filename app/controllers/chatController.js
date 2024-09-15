@@ -3,7 +3,15 @@ const User = require("../models/user");
 const Room = require("../models/room");
 const { default: mongoose } = require("mongoose");
 const { getSocket } = require("../../sockets");
+const HashTag = require("../models/hashTag");
 
+// async function createHashtag(data) {
+//   try {
+   
+//   } catch (error) {
+//     return error;
+//   }
+// }
 exports.sendMessage = async (req, res) => {
   try {
     const socket = getSocket();
@@ -17,9 +25,9 @@ exports.sendMessage = async (req, res) => {
         .status(404)
         .json({ success: false, error: "User or room not found" });
     }
-
+    let msg_id = new mongoose.Types.ObjectId();
     let message = {
-      _id: new mongoose.Types.ObjectId(),
+      _id: msg_id,
       sender: user,
       hashtagStatus: false,
       room: roomId,
@@ -30,20 +38,35 @@ exports.sendMessage = async (req, res) => {
     // const text = "#123abc! more text #456def, and #789ghi here";
     // const text = "#123abc! more text";
     const match = content.match(/#([a-zA-Z0-9]+)/);
+    // let hashtagId = new mongoose.Types.ObjectId();
     if (match?.[1]?.length > 2) {
-      console.log(match[1]); // Output: 123abc
+      //create hashTag
+      const createHashTag ={
+        hashtagTitle: "#" + match[1],
+        roomId,
+        hashtagStatus: true,
+        sender: user,
+        content: content,
+        msgId: msg_id,
+      }
+      let newHashtag = new HashTag(createHashTag);
+      const hashTagData = await newHashtag.save();
+      
+      console.log("Create hash ", hashTagData);
       message = {
         ...message,
         hashtagStatus: true,
         hashtagTitle: "#" + match[1],
+        hashtagId: hashTagData._id,
       };
+      // console.log(match[1]); //Output: 123abc
     }
     console.log(message);
 
     // await message.save();
 
     // Step 2: Push the message ID to the Room's messages array
-    await Room.findByIdAndUpdate(roomId, {
+    let updatedRoom = await Room.findByIdAndUpdate(roomId, {
       $push: { messages: message },
     });
 
@@ -59,6 +82,7 @@ exports.sendMessage = async (req, res) => {
       success: true,
       message: "Message sent successfully",
       status: true,
+      data: updatedRoom,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -122,7 +146,10 @@ exports.sendEmojiReaction = async (req, res) => {
     //   req.app.io.to(roomId).emit("msgReceived", message);
     // });
     const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
-    req.app.io.to(roomId).emit("message", { type: 2, msgId, data: newMsg[0] });
+    //type EMOJI FOR EMOJI
+    req.app.io
+      .to(roomId)
+      .emit("message", { type: "EMOJI", msgId, data: newMsg[0] });
 
     res.status(200).json({
       success: true,
