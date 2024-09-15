@@ -122,7 +122,8 @@ exports.sendEmojiReaction = async (req, res) => {
     //   req.app.io.to(roomId).emit("msgReceived", message);
     // });
     const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
-    req.app.io.to(roomId).emit("message", { type: 2, msgId, data: newMsg[0] });
+    //type EMOJI FOR EMOJI
+    req.app.io.to(roomId).emit("message", { type: "EMOJI", msgId, data: newMsg[0] });
 
     res.status(200).json({
       success: true,
