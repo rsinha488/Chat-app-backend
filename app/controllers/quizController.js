@@ -1,10 +1,11 @@
 // quizController.js
 const { socketIO } = require("../../sockets");
 const Quiz = require("../models/quiz");
+const Room = require("../models/room");
 const User = require("../models/user");
 const cron = require("node-cron");
 
-const io = socketIO();
+// const io = socketIO();
 
 //TYPES
 // QUIZ_STARTED
@@ -24,10 +25,18 @@ exports.createQuiz = async (req, res) => {
         .json({ success: false, error: "At least two options are required." });
     }
 
+    const room = await Room.findById({ _id: roomId });
+    
     const quiz = new Quiz({
       question,
       options,
-      roomId,
+      room:{
+        id: roomId,
+        name: room.name,
+        bgImage: room.bgImage,
+        textColor: room.primaryTextColor,
+        bgColor: room.primaryBgColor,
+      },
     });
 
     await quiz.save();
@@ -74,13 +83,14 @@ exports.updateQuiz = async (req, res) => {
     });
     // //schedule quiz
     if (endTime && quiz) {
-      scheduleQuizStatusUpdate(quiz);
+      scheduleQuizStatusUpdate(quiz, req);
     }
 
     if (!quiz)
       return res.status(404).json({ success: false, error: "Quiz not found" });
     
     //type QUIZ FOR QUIZ
+    console.log("update Quiz")
     req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
     res.status(200).json({ success: true, data: quiz });
 
@@ -190,7 +200,7 @@ exports.takeQuizzes = async (req, res) => {
 };
 
 // Function to update quiz status to false
-async function updateQuizStatus(quiz) {
+async function updateQuizStatus(quiz,req) {
   try {
     const data = await Quiz.findByIdAndUpdate(
       quiz._id,
@@ -200,7 +210,7 @@ async function updateQuizStatus(quiz) {
 
     // io.to(quiz.roomId).emit("updateQuizStatus", quiz)
     //type QUIZ FOR QUIZ
-    io.to(quiz.roomId).emit("message", { type: "QUIZ_STATUS_UPDATED", roomId, data: data });
+    req.app.io.to(quiz.roomId).emit("message", { type: "QUIZ_STATUS_UPDATED", roomId: quiz.roomId, data: data });
 
     console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
@@ -273,14 +283,14 @@ exports.updateQuizRow = async (req, res) => {
 // ===========
 
 // Function to calculate the difference and set the timeout
-function scheduleQuizStatusUpdate(quiz) {
+function scheduleQuizStatusUpdate(quiz, req) {
   const currentTime = new Date();
   const endTime = new Date(quiz.endTime);
   const timeDifference = endTime - currentTime;
 
   // Only schedule if endTime is in the future
   if (timeDifference > 0) {
-    setTimeout(() => updateQuizStatus(quiz), timeDifference);
+    setTimeout(() => updateQuizStatus(quiz, req), timeDifference);
     console.log(
       `Scheduled status update for quiz ${quiz._id} in ${timeDifference}ms.`
     );
