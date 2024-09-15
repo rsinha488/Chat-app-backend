@@ -7,7 +7,6 @@ const { getSocket } = require("../../sockets");
 const bcrypt = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
-const Quiz = require("../models/quiz");
 
 const usersInRooms = {};
 const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
@@ -203,10 +202,10 @@ exports.subscribeToRoom = async (req, res) => {
 
 
 
-    const quiz = await Quiz.findOne({
-      'room.id' : roomId,
-      status: false
-    });
+    // const quiz = await Quiz.findOne({
+    //   'room.id' : roomId,
+    //   status: false
+    // });
 
     //type QUIZ FOR QUIZ
     console.log("update quiz")
