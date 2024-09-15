@@ -7,6 +7,15 @@ const BasicThemeSchema = new mongoose.Schema({
     secondaryTextColor: { type: String, required: true }
 });
 
+const SignUpThemeSchema = new mongoose.Schema({
+    primaryLoginColor: { type: String, required: true },
+    primaryRegisterColor: { type: String, required: true },
+    secondaryColor: { type: String, required: true },
+    primaryLoginTextColor: { type: String, required: true },
+    primaryRegisterTextColor: { type: String, required: true },
+    secondaryTextColor: { type: String, required: true }
+});
+
 const ActiveQuizSchema = new mongoose.Schema({
     backgroundColor: { type: String, required: true },
     textColor: { type: String, required: true },
@@ -40,6 +49,7 @@ const ThemeSchema = new mongoose.Schema({
     theme: BasicThemeSchema,
     activeQuiz: ActiveQuizSchema,
     chat: ChatSchema,
+    signup: SignUpThemeSchema,
     // Add other sub-schemas here
     header: {
         logo: { type: String, required: true },
@@ -52,6 +62,7 @@ const ThemeSchema = new mongoose.Schema({
         backgroundColor: { type: String, required: true },
         textColor: { type: String, required: true }
     },
+    
     // Continue for all other sections
     // menu: {
     //     friendsMenuLocation: {

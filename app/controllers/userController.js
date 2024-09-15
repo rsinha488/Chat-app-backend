@@ -7,6 +7,7 @@ const { getSocket } = require("../../sockets");
 const bcrypt = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
+const Quiz = require("../models/quiz");
 
 const usersInRooms = {};
 const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
@@ -166,6 +167,7 @@ exports.subscribeToRoom = async (req, res) => {
         { _id: previousRoom.roomId },
         { $set: { userCount: userList.length } } // Set the userCount
       );
+
       req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
         roomId: previousRoom.roomId,
         data: userList,
@@ -196,8 +198,19 @@ exports.subscribeToRoom = async (req, res) => {
     req.app.io.to(roomId).emit("MemberUpdate", {
       badges: true,
       roomId,
-      content: `${user.name} has joined`,
+      content: `${user.userName} has joined`,
     });
+
+
+
+    const quiz = await Quiz.findOne({
+      'room.id' : roomId,
+      status: false
+    });
+
+    //type QUIZ FOR QUIZ
+    console.log("update quiz")
+    req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
 
     res
       .status(200)
