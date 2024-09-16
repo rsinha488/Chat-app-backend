@@ -22,6 +22,18 @@ const roomSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
+  bgImage: {
+    type: String,
+    default: ""
+  },
+  primaryBgColor: {
+    type: String,
+    default: ""
+  },
+  primaryTextColor: {
+    type: String,
+    default: ""
+  },
   description: {
     type: String,
     default: ""
