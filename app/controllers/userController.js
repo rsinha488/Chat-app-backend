@@ -112,24 +112,26 @@ exports.subscribeToRoom = async (req, res) => {
     //Find active quiz
     let quiz = await Quiz.find({
       "room.id": roomId,
-      status:true
+      status:false
     });
     console.log({ quiz });
     let quizData
     if(quiz)
       quizData=quiz[0]
 
-    const currentTime = new Date();
-    const endTime = new Date(quizData.endTime);
-    const timeDifference = endTime - currentTime;
-    // Only schedule if endTime is in the future
-    if (timeDifference > 0) {
-      console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
-      //type QUIZ FOR QUIZ
-      req.app.io
-        .to(roomId)
-        .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
-    }
+      if(quizData?.endTime){
+        const currentTime = new Date();
+        const endTime = new Date(quizData?.endTime);
+        const timeDifference = endTime - currentTime;
+        // Only schedule if endTime is in the future
+        if (timeDifference > 0) {
+          console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
+          //type QUIZ FOR QUIZ
+          req.app.io
+            .to(roomId)
+            .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
+        }
+      }
     // ===============
 
     // Find the user and room
@@ -208,8 +210,8 @@ exports.subscribeToRoom = async (req, res) => {
     // });
 
     //type QUIZ FOR QUIZ
-    console.log("update quiz")
-    req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
+    // console.log("update quiz")
+    // req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
 
     res
       .status(200)
