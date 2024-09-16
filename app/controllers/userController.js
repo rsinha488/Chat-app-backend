@@ -109,29 +109,6 @@ exports.subscribeToRoom = async (req, res) => {
     const socket = getSocket();
     const { userId, roomId } = req.body;
 
-    //Find active quiz
-    let quiz = await Quiz.find({
-      "room.id": roomId,
-      status:false
-    });
-    console.log({ quiz });
-    let quizData
-    if(quiz)
-      quizData=quiz[0]
-
-      if(quizData?.endTime){
-        const currentTime = new Date();
-        const endTime = new Date(quizData?.endTime);
-        const timeDifference = endTime - currentTime;
-        // Only schedule if endTime is in the future
-        if (timeDifference > 0) {
-          console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
-          //type QUIZ FOR QUIZ
-          req.app.io
-            .to(roomId)
-            .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
-        }
-      }
     // ===============
 
     // Find the user and room
@@ -203,6 +180,30 @@ exports.subscribeToRoom = async (req, res) => {
     });
 
 
+
+    //Find active quiz
+    let quiz = await Quiz.find({
+      "room.id": roomId,
+      status:false
+    });
+    console.log({ quiz });
+    let quizData
+    if(quiz)
+      quizData=quiz[0]
+
+      if(quizData?.endTime){
+        const currentTime = new Date();
+        const endTime = new Date(quizData?.endTime);
+        const timeDifference = endTime - currentTime;
+        // Only schedule if endTime is in the future
+        if (timeDifference > 0) {
+          console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
+          //type QUIZ FOR QUIZ
+          req.app.io
+            .to(roomId)
+            .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
+        }
+      }
 
     // const quiz = await Quiz.findOne({
     //   'room.id' : roomId,
