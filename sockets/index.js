@@ -3,10 +3,10 @@ const { Server } = require("socket.io");
 const { Chatlistener } = require("./socketListener/Chatlistener");
 
 var socketEvent = {};
-let io = false;
+// let io = false;
 function socketIO(server) {
-  if (io) return io;
-  io = new Server(server, {
+  // if (io) return io;
+  let io = new Server(server, {
     debug: true,
     cors: {
       origin: " * ",
