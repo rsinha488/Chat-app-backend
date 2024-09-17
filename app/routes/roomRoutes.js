@@ -8,6 +8,6 @@ router.post("/rooms", roomController.createRoom);
 // router.get('/',authenticate,roomController.getRoomsList);
 router.get("/", roomController.getRoomsList);
 //roomId in params (id)
-router.put("/rid=:id", roomController.updateRoomRow);
+router.put("/updateRow/:id", roomController.updateRoomRow);
 
 module.exports = router;
