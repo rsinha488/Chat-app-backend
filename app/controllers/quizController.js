@@ -26,11 +26,11 @@ exports.createQuiz = async (req, res) => {
     }
 
     const room = await Room.findById({ _id: roomId });
-    
+
     const quiz = new Quiz({
       question,
       options,
-      room:{
+      room: {
         id: roomId,
         name: room.name,
         bgImage: room.bgImage,
@@ -57,7 +57,7 @@ exports.getQuizzes = async (req, res) => {
 // Update a quiz by ID
 exports.updateQuiz = async (req, res) => {
   try {
-    const {  roomId, endTime } = req.body; 
+    const { roomId, endTime } = req.body;
     let data;
 
     const currentTime = new Date();
@@ -68,13 +68,16 @@ exports.updateQuiz = async (req, res) => {
       console.log(`Quiz ${quiz._id} endTime has already passed.`);
       return res
         .status(400)
-        .json({ success: false, error: `Quiz ${quiz._id} endTime has already passed.` });
+        .json({
+          success: false,
+          error: `Quiz ${quiz._id} endTime has already passed.`,
+        });
     }
 
     if (endTime) {
-      data = {  roomId, endTime, status: true };
+      data = { roomId, endTime, status: true };
     } else {
-      data = {  roomId, endTime };
+      data = { roomId, endTime };
     }
 
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, data, {
@@ -88,12 +91,13 @@ exports.updateQuiz = async (req, res) => {
 
     if (!quiz)
       return res.status(404).json({ success: false, error: "Quiz not found" });
-    
-    //type QUIZ FOR QUIZ
-    console.log("update Quiz")
-    req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
-    res.status(200).json({ success: true, data: quiz });
 
+    //type QUIZ FOR QUIZ
+    console.log("update Quiz");
+    req.app.io
+      .to(roomId)
+      .emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
+    res.status(200).json({ success: true, data: quiz });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -188,7 +192,9 @@ exports.takeQuizzes = async (req, res) => {
     // io.to(roomId).emit("takeQuizzes", quiz);
 
     //type QUIZ FOR QUIZ
-    req.app.io.to(roomId).emit("message", { type: "QUIZ_TAKE_QUIZ", roomId, data: quiz });
+    req.app.io
+      .to(roomId)
+      .emit("message", { type: "QUIZ_TAKE_QUIZ", roomId, data: quiz });
 
     res
       .status(200)
@@ -200,48 +206,78 @@ exports.takeQuizzes = async (req, res) => {
 };
 
 // Function to update quiz status to false
-async function updateQuizStatus(quiz,req) {
+async function updateQuizStatus(quiz, req) {
   try {
     const data = await Quiz.findByIdAndUpdate(
       quiz._id,
       { status: false, completed: true },
       { new: true } // This option returns the updated document
     );
-
+    let quizResult = getQuizStats(quiz._id, quiz.roomId);
+    console.log({ quizResult });
     // io.to(quiz.roomId).emit("updateQuizStatus", quiz)
     //type QUIZ FOR QUIZ
-    req.app.io.to(quiz.roomId).emit("message", { type: "QUIZ_STATUS_UPDATED", roomId: quiz.roomId, data: data });
+    req.app.io
+      .to(quiz.roomId)
+      .emit("message", {
+        type: "QUIZ_RESULT",
+        roomId: quiz.roomId,
+        data: quizResult,
+      });
 
     console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
     console.error("Failed to update quiz status:", error);
   }
 }
-// =========
-// Update quiz record
-// exports.updateQuizRow = async (req, res) => {
-//   const { id } = req.params;  
-//   console.log(id)
-//   const data = { ...req.body };
-//   // Prevent updating the _id field
-//   delete data._id;
-//   try {
-//     const quiz = await Quiz.findByIdAndUpdate({_id:req.params.id}, {...data}, {
-//       new: true,
-//       runValidators: true,
-//     });
+const getQuizStats = async (quizId, roomId, req) => {
+  try {
+    // Validate input
+    if (!quizId || !roomId) {
+      throw new Error("Invalid input");
+    }
 
-//     if (!quiz)
-//       return res.status(404).json({ success: false, error: "Quiz not found" });
-    
-//     //type QUIZ FOR QUIZ
-//     req.app.io.to(req.body.room.id).emit("message", { type: "QUIZ_ROW_UPDATED", roomId: req.body.room.id, data: quiz });
-//     res.status(200).json({ success: true, data: quiz });
+    // Fetch the quiz by quizId and roomId
+    const quiz = await Quiz.findOne({ _id: quizId, roomId });
 
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// };
+    if (!quiz) {
+      throw new Error("Quiz not found");
+    }
+
+    // Create a stats object to hold option counts and user data
+    const optionStats = {};
+    const usersByOption = {};
+
+    // Loop through the totalUserAnsweredDetail to calculate stats
+    quiz.totalUserAnsweredDetail.forEach(({ userId, optionClicked }) => {
+      // Count how many users clicked each option
+      optionStats[optionClicked] = (optionStats[optionClicked] || 0) + 1;
+
+      // Group users by option clicked
+      if (!usersByOption[optionClicked]) {
+        usersByOption[optionClicked] = [];
+      }
+      usersByOption[optionClicked].push(userId);
+    });
+
+    // Construct the stats data to return
+    const statsData = {
+      quizId: quiz._id,
+      roomId: quiz.roomId,
+      question: quiz.question,
+      totalUserAnswered: quiz.totalUserAnswered,
+      optionStats, // e.g., { option1: 5, option2: 3 }
+      usersByOption, // e.g., { option1: [user1, user2], option2: [user3] }
+      optionsClickedByUsers: Array.from(quiz.optionsClickedByUsers.entries()), // Convert Map to Array
+    };
+
+    return { success: true, data: statsData };
+  } catch (error) {
+    console.error("Error fetching quiz stats:", error);
+    return { success: false, message: error.message };
+  }
+};
+
 exports.updateQuizRow = async (req, res) => {
   const { id } = req.params;
 
@@ -252,11 +288,11 @@ exports.updateQuizRow = async (req, res) => {
 
   try {
     const quiz = await Quiz.findByIdAndUpdate(
-      id,  // Use the id directly
+      id, // Use the id directly
       { ...data },
       {
-        new: true,  // Return the updated document
-        runValidators: true,  // Validate the data before updating
+        new: true, // Return the updated document
+        runValidators: true, // Validate the data before updating
       }
     );
 
