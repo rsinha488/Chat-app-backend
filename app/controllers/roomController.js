@@ -4,6 +4,14 @@ const Room = require("../models/room");
 exports.createRoom = async (req, res) => {
   try {
     const { name, image, description } = req.body;
+    // Check if a room with the same name already exists
+    const existingRoom = await Room.findOne({ name });
+    if (existingRoom) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Room name already exists" });
+    }
+
     const newRoom = new Room({ name, image, description });
     const savedRoom = await newRoom.save();
     res.status(201).json({ success: true, data: savedRoom });
@@ -28,7 +36,6 @@ exports.updateRoomRow = async (req, res) => {
 
   // Prevent updating the _id field
   delete data._id;
-
 
   try {
     const room = await Room.findByIdAndUpdate(

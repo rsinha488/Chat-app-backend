@@ -5,6 +5,7 @@ const hashtagSchema = new mongoose.Schema({
   hashtagTitle: {
     type: String,
     required: true,
+    unique: true,
   },
   //Active or inactive hashTag
   hashtagStatus: {
@@ -19,9 +20,13 @@ const hashtagSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: [],
   },
-  sender:{
+  sender: {
     type: mongoose.Schema.Types.Mixed,
-    default:{}
+    default: {},
+  },
+  msgId: {
+    type: String,
+    required: true,
   },
   messages: [
     {
