@@ -184,7 +184,7 @@ exports.subscribeToRoom = async (req, res) => {
     //Find active quiz
     let quiz = await Quiz.find({
       "room.id": roomId,
-      status:false
+      status:true
     });
     console.log({ quiz });
     let quizData
