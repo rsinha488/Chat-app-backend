@@ -79,11 +79,12 @@ exports.updateQuiz = async (req, res) => {
     } else {
       data = { roomId, endTime };
     }
-
+console.log({data})
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });
+    console.log({quiz})
     // //schedule quiz
     if (endTime && quiz) {
       scheduleQuizStatusUpdate(quiz, req);
