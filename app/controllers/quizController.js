@@ -79,11 +79,12 @@ exports.updateQuiz = async (req, res) => {
     } else {
       data = { roomId, endTime };
     }
-
+console.log({data})
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });
+    console.log({quiz})
     // //schedule quiz
     if (endTime && quiz) {
       scheduleQuizStatusUpdate(quiz, req);
@@ -147,7 +148,7 @@ exports.takeQuizzes = async (req, res) => {
     }
 
     // Fetch the quiz by quizId and roomId
-    const quiz = await Quiz.findOne({ _id: quizId, roomId });
+    const quiz = await Quiz.findOne({ _id: quizId});
 
     if (!quiz) {
       return res

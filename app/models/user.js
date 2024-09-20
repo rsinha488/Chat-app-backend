@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   },
   status:{
     type: Boolean,
-    default:"ACTIVE" //TEMPORARY_BLOCKED, BLOCKED
+    default: false //TEMPORARY_BLOCKED, BLOCKED
   },
   firstName: {
     type: String,
