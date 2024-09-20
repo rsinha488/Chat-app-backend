@@ -7,7 +7,7 @@ const HashTag = require("../models/hashTag");
 
 // async function createHashtag(data) {
 //   try {
-   
+
 //   } catch (error) {
 //     return error;
 //   }
@@ -41,24 +41,33 @@ exports.sendMessage = async (req, res) => {
     // let hashtagId = new mongoose.Types.ObjectId();
     if (match?.[1]?.length > 2) {
       //create hashTag
-      const createHashTag ={
+      const createHashTag = {
         hashtagTitle: "#" + match[1],
         roomId,
         hashtagStatus: true,
         sender: user,
         content: content,
         msgId: msg_id,
-      }
-      let newHashtag = new HashTag(createHashTag);
-      const hashTagData = await newHashtag.save();
-      
-      console.log("Create hash ", hashTagData);
-      message = {
-        ...message,
-        hashtagStatus: true,
-        hashtagTitle: "#" + match[1],
-        hashtagId: hashTagData._id,
       };
+      // Check if a Hastag with the same name already exists
+      const existingHashtag = await HashTag.findOne({
+        roomId,
+        hashtagTitle: createHashTag?.hashtagTitle,
+      });
+      if (!existingHashtag) {
+        console.log("existingHashtag ", existingHashtag);
+        let newHashtag = new HashTag(createHashTag);
+        const hashTagData = await newHashtag.save();
+  
+        console.log("Create hash ", hashTagData);
+        message = {
+          ...message,
+          hashtagStatus: true,
+          hashtagTitle: "#" + match[1],
+          hashtagId: hashTagData._id,
+        };
+        
+      }
       // console.log(match[1]); //Output: 123abc
     }
     console.log(message);
