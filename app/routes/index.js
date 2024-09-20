@@ -7,7 +7,7 @@ const chatRoutes = require("./chatRoutes");
 const themeRoutes = require("./themeRoutes");
 const quizRoutes = require("./quizRoutes");
 const hashtagRoutes= require("./hashtagRoutes");
-const advertisementRoutes= require("./advertisementRoutes");
+const advertisementRoutes= require("./advertisementRoute");
 const eventRoutes = require("./eventRoutes");
 
 router.use("/rooms", roomRoutes);

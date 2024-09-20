@@ -1,4 +1,5 @@
-const Advertisement = require('./advertisementSchema');
+const Advertisement = require("../models/advertisement");
+
 
 // Create a new advertisement
 exports.createAdvertisement = async (req, res) => {

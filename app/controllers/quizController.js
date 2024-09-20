@@ -148,7 +148,7 @@ exports.takeQuizzes = async (req, res) => {
     }
 
     // Fetch the quiz by quizId and roomId
-    const quiz = await Quiz.findOne({ _id: quizId, roomId });
+    const quiz = await Quiz.findOne({ _id: quizId});
 
     if (!quiz) {
       return res
