@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('./user');
+const Slot = require('./slot'); 
 
 // User details schema to store inside click and watch arrays
 const userDetailSchema = new mongoose.Schema({
@@ -42,12 +43,34 @@ const advertisementSchema = new mongoose.Schema({
   status: {
     type: Boolean, // Status of the advertisement (active/inactive)
     default: true // Default to active
-  },
+  }, 
+  selectedSlots: [{
+    type: String,
+    ref: 'Slot'  // Reference to the Slot model
+  }],
   isDeleted: {
     type: Boolean,
     default: false // Track soft deletion
   }
 });
+advertisementSchema.pre('save', function (next) {
+  // If endTime has passed, set the status to false
+  if (this.endTime && this.endTime < Date.now()) {
+    this.status = false;
+  }
+  next();
+});
+
+advertisementSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate();
+  const endTime = update.endTime || this.getQuery().endTime;
+
+  if (endTime && endTime < Date.now()) {
+    this.getUpdate().status = false;
+  }
+  next();
+});
+
 
 const Advertisement = mongoose.model('Advertisement', advertisementSchema);
 
