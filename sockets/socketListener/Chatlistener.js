@@ -14,5 +14,13 @@ module.exports.Chatlistener = (socket, io) => {
     
         // socket.to(data.roomId).emit("message",{type: 4, ...data})
     });
+    // socket.on("getAdvertisementWatch", (data)=>{
+    //     console.log({data},"getAdvertisementWatch")
+    //     const roomSockets = io.sockets.adapter.rooms.get(data.roomId);
+
+
+    //     console.log(roomSockets, "comming::getAdvertisementWatch");
+    
+    // });
 
 }

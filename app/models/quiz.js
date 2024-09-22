@@ -1,15 +1,14 @@
 const mongoose = require("mongoose");
 
-
 const quizSchema = new mongoose.Schema({
   status: { type: Boolean, required: true, default: false },
-  completed:{ type: Boolean, required: true, default: false },//quiz  completed or not 
+  completed: { type: Boolean, required: true, default: false }, //quiz  completed or not
   question: {
     type: String,
     required: true,
     trim: true,
   },
-  endTime: { type: Date },
+  endTime: { type: Date, default: "" },
   options: {
     type: [
       {
@@ -39,23 +38,23 @@ const quizSchema = new mongoose.Schema({
     ],
   },
   room: {
-   id: {
-    type: String,
-    required: true,
-  },
-  name: {
-    type: String,
-    required: true,
-  },
-  bgColor: {
-    type: String,
-  },
-  bgImage: {
-    type: String,
-  },
-  textColor: {
-    type: String,
-  }
+    id: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    bgColor: {
+      type: String,
+    },
+    bgImage: {
+      type: String,
+    },
+    textColor: {
+      type: String,
+    },
   },
 });
 
