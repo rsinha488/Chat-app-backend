@@ -38,7 +38,7 @@ const advertisementSchema = new mongoose.Schema({
   },
   endTime: {
     type: Date, // When the advertisement ends
-    required: true
+    default:""
   },
   status: {
     type: Boolean, // Status of the advertisement (active/inactive)

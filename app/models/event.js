@@ -18,7 +18,8 @@ const eventSchema = new mongoose.Schema({
     type: String,
   },
   endTime: {
-    type:Date
+    type:Date,
+    default:""
   },
   isDeleted: {
     type: Boolean,

@@ -1,17 +1,20 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 // Slot Schema
 const slotSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
-  }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const Slot = mongoose.model('Slot', slotSchema);
+const Slot = mongoose.model("Slot", slotSchema);
 
 module.exports = Slot;

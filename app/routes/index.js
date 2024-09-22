@@ -6,17 +6,19 @@ const userRoutes = require("./userRoutes");
 const chatRoutes = require("./chatRoutes");
 const themeRoutes = require("./themeRoutes");
 const quizRoutes = require("./quizRoutes");
-const hashtagRoutes= require("./hashtagRoutes");
-const advertisementRoutes= require("./advertisementRoute");
+const hashtagRoutes = require("./hashtagRoutes");
+const advertisementRoutes = require("./advertisementRoute");
 const eventRoutes = require("./eventRoutes");
+const slotRoutes = require("./slotRoute");
 
 router.use("/rooms", roomRoutes);
 router.use("/users", userRoutes);
 router.use("/chat", chatRoutes);
 router.use("/theme", themeRoutes);
 router.use("/quiz", quizRoutes);
-router.use("/hashtag",hashtagRoutes);
-router.use("/event",eventRoutes);
-router.use("/advertisements",advertisementRoutes)
+router.use("/hashtag", hashtagRoutes);
+router.use("/slot", slotRoutes);
+router.use("/event", eventRoutes);
+router.use("/advertisements", advertisementRoutes);
 
 module.exports = router;

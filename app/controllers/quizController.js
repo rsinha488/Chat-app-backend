@@ -66,12 +66,10 @@ exports.updateQuiz = async (req, res) => {
     // Only schedule if endTime is in the future
     if (timeDifference <= 0) {
       console.log(`Quiz ${quiz._id} endTime has already passed.`);
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: `Quiz ${quiz._id} endTime has already passed.`,
-        });
+      return res.status(400).json({
+        success: false,
+        error: `Quiz ${quiz._id} endTime has already passed.`,
+      });
     }
 
     if (endTime) {
@@ -79,12 +77,12 @@ exports.updateQuiz = async (req, res) => {
     } else {
       data = { roomId, endTime };
     }
-console.log({data})
+    console.log({ data });
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });
-    console.log({quiz})
+    console.log({ quiz });
     // //schedule quiz
     if (endTime && quiz) {
       scheduleQuizStatusUpdate(quiz, req);
@@ -148,7 +146,7 @@ exports.takeQuizzes = async (req, res) => {
     }
 
     // Fetch the quiz by quizId and roomId
-    const quiz = await Quiz.findOne({ _id: quizId});
+    const quiz = await Quiz.findOne({ _id: quizId });
 
     if (!quiz) {
       return res
@@ -218,19 +216,64 @@ async function updateQuizStatus(quiz, req) {
     console.log({ quizResult });
     // io.to(quiz.roomId).emit("updateQuizStatus", quiz)
     //type QUIZ FOR QUIZ
-    req.app.io
-      .to(quiz.roomId)
-      .emit("message", {
-        type: "QUIZ_RESULT",
-        roomId: quiz.roomId,
-        data: quizResult,
-      });
+    req.app.io.to(quiz.roomId).emit("message", {
+      type: "QUIZ_RESULT",
+      roomId: quiz.roomId,
+      data: quizResult,
+    });
 
     console.log(`Quiz ${quiz._id} status set to false.`);
   } catch (error) {
     console.error("Failed to update quiz status:", error);
   }
 }
+// const getQuizStats = async (quizId, roomId, req) => {
+//   try {
+//     // Validate input
+//     if (!quizId || !roomId) {
+//       throw new Error("Invalid input");
+//     }
+
+//     // Fetch the quiz by quizId and roomId
+//     const quiz = await Quiz.findOne({ _id: quizId, "room.roomId": roomId });
+
+//     if (!quiz) {
+//       throw new Error("Quiz not found");
+//     }
+
+//     // Create a stats object to hold option counts and user data
+//     const optionStats = {};
+//     const usersByOption = {};
+
+//     // Loop through the totalUserAnsweredDetail to calculate stats
+//     quiz.totalUserAnsweredDetail.forEach(({ userId, optionClicked }) => {
+//       // Count how many users clicked each option
+//       optionStats[optionClicked] = (optionStats[optionClicked] || 0) + 1;
+
+//       // Group users by option clicked
+//       if (!usersByOption[optionClicked]) {
+//         usersByOption[optionClicked] = [];
+//       }
+//       usersByOption[optionClicked].push(userId);
+//     });
+
+//     // Construct the stats data to return
+//     const statsData = {
+//       quizId: quiz._id,
+//       roomId: roomId,
+//       question: quiz.question,
+//       totalUserAnswered: quiz.totalUserAnswered,
+//       optionStats, // e.g., { option1: 5, option2: 3 }
+//       usersByOption, // e.g., { option1: [user1, user2], option2: [user3] }
+//       optionsClickedByUsers: Array.from(quiz.optionsClickedByUsers.entries()), // Convert Map to Array
+//     };
+
+//     return { success: true, data: statsData };
+//   } catch (error) {
+//     console.error("Error fetching quiz stats:", error);
+//     return { success: false, message: error.message };
+//   }
+// };
 const getQuizStats = async (quizId, roomId, req) => {
   try {
     // Validate input
@@ -239,36 +282,39 @@ const getQuizStats = async (quizId, roomId, req) => {
     }
 
     // Fetch the quiz by quizId and roomId
-    const quiz = await Quiz.findOne({ _id: quizId, roomId });
+    const quiz = await Quiz.findOne({ _id: quizId, "room.id": roomId });
 
     if (!quiz) {
       throw new Error("Quiz not found");
     }
 
-    // Create a stats object to hold option counts and user data
+    // Initialize the stats object to hold option counts and user data
     const optionStats = {};
     const usersByOption = {};
 
-    // Loop through the totalUserAnsweredDetail to calculate stats
+    // Initialize optionStats and usersByOption with all possible options
+    quiz.options.forEach((option, index) => {
+      optionStats[index] = 0; // Initialize count to zero for each option
+      usersByOption[index] = []; // Initialize empty array for each option's users
+    });
+
+    // Loop through the totalUserAnsweredDetail to calculate actual stats
     quiz.totalUserAnsweredDetail.forEach(({ userId, optionClicked }) => {
       // Count how many users clicked each option
       optionStats[optionClicked] = (optionStats[optionClicked] || 0) + 1;
 
-      // Group users by option clicked
-      if (!usersByOption[optionClicked]) {
-        usersByOption[optionClicked] = [];
-      }
+      // Group users by the option they clicked
       usersByOption[optionClicked].push(userId);
     });
 
     // Construct the stats data to return
     const statsData = {
       quizId: quiz._id,
-      roomId: quiz.roomId,
+      roomId: roomId,
       question: quiz.question,
       totalUserAnswered: quiz.totalUserAnswered,
-      optionStats, // e.g., { option1: 5, option2: 3 }
-      usersByOption, // e.g., { option1: [user1, user2], option2: [user3] }
+      optionStats, // Contains counts for each option
+      usersByOption, // Contains user arrays for each option
       optionsClickedByUsers: Array.from(quiz.optionsClickedByUsers.entries()), // Convert Map to Array
     };
 
