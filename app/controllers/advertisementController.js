@@ -59,36 +59,6 @@ exports.getAdvertisementDetail = async (req, res) => {
   }
 };
 
-// setAdvertisementEndTime
-exports.setAdvertisementEndTime = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { endTime } = req.body;
-
-    if (!endTime) {
-      return res
-        .status(400)
-        .json({ success: false, message: "EndTime is required" });
-    }
-
-    // Update the endTime field of the advertisement
-    const updatedAd = await Advertisement.findByIdAndUpdate(
-      id,
-      { endTime, status: endTime < Date.now() ? false : true }, // Set status based on endTime
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedAd || updatedAd.isDeleted) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Advertisement not found" });
-    }
-
-    res.status(200).json({ success: true, data: updatedAd });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
 
 // Soft delete an advertisement
 exports.softDeleteAdvertisement = async (req, res) => {
@@ -116,68 +86,56 @@ exports.softDeleteAdvertisement = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
-// Update an advertisement by ID
-// exports.updateAdvertisement = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { selectedSlots } = req.body;
-
-//     // Validate if the provided selectedSlots are valid Slot IDs
-//     if (selectedSlots && selectedSlots.length > 0) {
-//       const validSlots = await Slot.find({ _id: { $in: selectedSlots } });
-
-//       if (validSlots.length !== selectedSlots.length) {
-//         return res.status(400).json({ success: false, message: 'One or more selected slots are invalid' });
-//       }
-//     }
-
-//     // Update the advertisement including the selected slots
-//     const updatedAd = await Advertisement.findByIdAndUpdate(id, req.body, {
-//       new: true, // Return the updated document
-//       runValidators: true // Ensure validation
-//     });
-
-//     if (!updatedAd || updatedAd.isDeleted) {
-//       return res.status(404).json({ success: false, message: 'Advertisement not found' });
-//     }
-
-//     res.status(200).json({ success: true, data: updatedAd });
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// };
-// Update an advertisement by ID
+// updateAdvertisement
 exports.updateAdvertisement = async (req, res) => {
   try {
     const { id } = req.params;
-    const { selectedSlots } = req.body;
+    const { selectedSlots, endTime } = req.body;
 
-    // Validate if the selected slots are valid (e.g., all slot names exist)
+    // Validate and update the selected slots if provided
     if (selectedSlots && selectedSlots.length > 0) {
-      const validSlots = await Slot.find({ name: { $in: selectedSlots } });
+      // Fetch the valid slots from the database
+      const validSlots = await Slot.find({ name: { $in: selectedSlots.map(slot => slot.name) } });
+
+      // If some slots are invalid, return an error
       if (validSlots.length !== selectedSlots.length) {
         return res
           .status(400)
           .json({ success: false, message: "Some slots are invalid" });
       }
+
+      // Convert validSlots to the format required for selectedSlots (_id, name)
+      req.body.selectedSlots = validSlots.map(slot => ({
+        _id: slot._id,
+        name: slot.name,
+      }));
     }
 
+    // Set the status based on endTime if provided
+    if (endTime) {
+      req.body.status = endTime < Date.now() ? false : true;
+    }
+
+    // Update the advertisement
     const updatedAd = await Advertisement.findByIdAndUpdate(id, req.body, {
       new: true, // Return the updated document
       runValidators: true, // Ensure validation
     });
 
+    // If the advertisement is not found or is deleted, return an error
     if (!updatedAd || updatedAd.isDeleted) {
       return res
         .status(404)
         .json({ success: false, message: "Advertisement not found" });
     }
 
+    // Return success response with the updated advertisement data
     res.status(200).json({ success: true, data: updatedAd });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 // Set advertisement click details (log user's click)
 exports.setAdvertisementClick = async (req, res) => {
