@@ -27,7 +27,7 @@ const slotDetailSchema = new mongoose.Schema({
 });
 
 const advertisementSchema = new mongoose.Schema({
-  imageUrl: {
+  url: {
     type: String,
     required: true, // Ensure that an image URL is required
   },
