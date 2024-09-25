@@ -13,7 +13,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this s
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; // Token expiry duration
 
 exports.createUser = async (req, res) => {
-  const { userName, firstName, lastName, image, password } = req.body;
+  const { userName, firstName, lastName, image, password, isAdmin } = req.body;
+  console.log(
+    req.body,
+    userName,
+    firstName,
+    lastName,
+    image,
+    password,
+    isAdmin
+  );
 
   // Check if password is provided
   if (!password) {
@@ -29,6 +38,7 @@ exports.createUser = async (req, res) => {
     firstName: firstName,
     lastName: lastName,
     image: image,
+    isAdmin: isAdmin ? isAdmin : false,
     password: hashedPassword,
   });
   console.log({ data });
@@ -179,31 +189,30 @@ exports.subscribeToRoom = async (req, res) => {
       content: `${user.userName} has joined`,
     });
 
-
-
     //Find active quiz
     let quiz = await Quiz.find({
       "room.id": roomId,
-      status:true
+      status: true,
     });
     console.log({ quiz });
-    let quizData
-    if(quiz)
-      quizData=quiz[0]
+    let quizData;
+    if (quiz) quizData = quiz[0];
 
-      if(quizData?.endTime){
-        const currentTime = new Date();
-        const endTime = new Date(quizData?.endTime);
-        const timeDifference = endTime - currentTime;
-        // Only schedule if endTime is in the future
-        if (timeDifference > 0) {
-          console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
-          //type QUIZ FOR QUIZ
-          req.app.io
-            .to(roomId)
-            .emit("message", { type: "QUIZ_STARTED", roomId, data: quizData?quizData:"" });
-        }
+    if (quizData?.endTime) {
+      const currentTime = new Date();
+      const endTime = new Date(quizData?.endTime);
+      const timeDifference = endTime - currentTime;
+      // Only schedule if endTime is in the future
+      if (timeDifference > 0) {
+        console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
+        //type QUIZ FOR QUIZ
+        req.app.io.to(roomId).emit("message", {
+          type: "QUIZ_STARTED",
+          roomId,
+          data: quizData ? quizData : "",
+        });
       }
+    }
 
     // const quiz = await Quiz.findOne({
     //   'room.id' : roomId,
@@ -253,7 +262,8 @@ exports.getUserDetail = async (req, res) => {
 // Update user details by ID
 exports.updateUserDetail = async (req, res) => {
   const { userId } = req.params; // Assuming _id is passed as a URL parameter
-  const { userName, firstName, lastName, image, password } = req.body;
+  const { userName, firstName, lastName, image, password, isAdmin, status } =
+    req.body;
 
   try {
     const user = await User.findById(userId);
@@ -268,6 +278,8 @@ exports.updateUserDetail = async (req, res) => {
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (image) user.image = image;
+    if (isAdmin) user.isAdmin = isAdmin;
+    if (status) user.status = status;
 
     if (password) {
       user.password = await bcrypt.hash(password, 10);
@@ -285,13 +297,7 @@ exports.updateUserDetail = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    // const { userId } = req.body;
-    const data = await User.find();
-    // const data = {
-    //   name: "shivam",
-    //   active: true,
-    // };
-    // req.app.io.emit("getUser", data);
+    const data = await User.find().select("-password");
     res.status(200).json({ success: true, data: data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
