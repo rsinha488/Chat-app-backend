@@ -12,4 +12,6 @@ router.put('/:id', eventController.updateEventDetail);
 
 router.delete('/:id', eventController.softDeleteEvent);
 
+router.post('/message',eventController.sendEventMessage);
+
 module.exports = router;

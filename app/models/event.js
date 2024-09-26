@@ -1,18 +1,18 @@
 // eventSchema.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
   title: {
     type: String,
     default: {},
-    required: true
+    required: true,
   },
-  description : {
+  description: {
     type: String,
   },
-  status : {
+  status: {
     type: Boolean,
-    default: false
+    default: false,
   },
   bgImage: {
     type: String,
@@ -30,15 +30,21 @@ const eventSchema = new mongoose.Schema({
     type: String,
   },
   endTime: {
-    type:Date,
-    default:""
+    type: Date,
+    default: "",
   },
   isDeleted: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
+  messages: [
+    {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+  ],
 });
 
-const Event = mongoose.model('Event', eventSchema);
+const Event = mongoose.model("Event", eventSchema);
 
 module.exports = Event;
