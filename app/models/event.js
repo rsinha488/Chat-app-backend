@@ -14,7 +14,19 @@ const eventSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  url: {
+  bgImage: {
+    type: String,
+    default: ""
+  },
+  primaryBgColor: {
+    type: String,
+    default: ""
+  },
+  primaryTextColor: {
+    type: String,
+    default: ""
+  },
+  url : {
     type: String,
   },
   endTime: {
