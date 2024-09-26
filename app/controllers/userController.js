@@ -278,9 +278,8 @@ exports.updateUserDetail = async (req, res) => {
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (image) user.image = image;
-    if (isAdmin) user.isAdmin = isAdmin;
+    user.isAdmin = isAdmin;
     if (status) user.status = status;
-
     if (password) {
       user.password = await bcrypt.hash(password, 10);
     }

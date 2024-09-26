@@ -1,4 +1,7 @@
+const { default: mongoose } = require("mongoose");
+const { getSocket } = require("../../sockets");
 const Event = require("../models/event");
+const User = require("../models/user");
 
 exports.createEvent = async (req, res) => {
   try {
@@ -115,5 +118,44 @@ exports.softDeleteEvent = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+exports.sendEventMessage = async (req, res) => {
+  try {
+    const socket = getSocket();
+    const { userId, eventId, content } = req.body;
+
+    // Find the user and room
+    const user = await User.findById({ _id: userId });
+    if (!user ) {
+      return res
+        .status(404)
+        .json({ success: false, error: "User  not found" });
+    }
+    let msg_id = new mongoose.Types.ObjectId();
+    let message = {
+      _id: msg_id,
+      sender: user,
+      content: content,
+      emojiReaction: [],
+    };
+
+    let updatedevent = await Event.findByIdAndUpdate(eventId, {
+      $push: { messages: message },
+    });
+    req.app.io.to(eventId).emit("eventMessage", {
+      type: "EVENT_MESSAGE",
+      eventId: eventId,
+      data: updatedevent,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Message sent successfully",
+      data: updatedevent,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
