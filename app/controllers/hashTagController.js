@@ -1,4 +1,5 @@
 // roomController.js
+const { default: mongoose } = require("mongoose");
 const { getSocket } = require("../../sockets");
 const HashTag = require("../models/hashTag");
 const Room = require("../models/room");
