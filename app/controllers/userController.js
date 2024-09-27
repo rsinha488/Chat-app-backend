@@ -7,6 +7,7 @@ const { getSocket } = require("../../sockets");
 const bcrypt = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
+const HashTag = require("../models/hashTag");
 
 const usersInRooms = {};
 const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
@@ -124,12 +125,15 @@ exports.subscribeToRoom = async (req, res) => {
     // Find the user and room
     const user = await User.findById(userId);
     const room = await Room.findById(roomId);
+    
+    const event = await Event.findById(roomId);
+    const HashTag = await HashTag.findById(roomId);
 
-    if (!user || !room) {
-      return res
-        .status(404)
-        .json({ success: false, error: "User or room not found" });
-    }
+    // if (!user || !room) {
+    //   return res
+    //     .status(404)
+    //     .json({ success: false, error: "User or room not found" });
+    // }
 
     const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
 
@@ -151,11 +155,21 @@ exports.subscribeToRoom = async (req, res) => {
           ? await User.find({ _id: { $in: listUsers } }).exec()
           : [];
 
-      await Room.updateOne(
-        { _id: previousRoom.roomId },
-        { $set: { userCount: userList.length } } // Set the userCount
-      );
-
+      if (room)
+        await Room.updateOne(
+          { _id: previousRoom.roomId },
+          { $set: { userCount: userList.length } } // Set the userCount
+        );
+        // if (event)
+        //   await Event.updateOne(
+        //     { _id: previousRoom.roomId },
+        //     { $set: { userCount: userList.length } } // Set the userCount
+        //   );
+        //   if (HashTag)
+        //     await HashTag.updateOne(
+        //       { _id: previousRoom.roomId },
+        //       { $set: { userCount: userList.length } } // Set the userCount
+        //     );
       req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
         roomId: previousRoom.roomId,
         data: userList,
