@@ -92,10 +92,12 @@ exports.updateAdvertisement = async (req, res) => {
     const { id } = req.params;
     const { selectedSlots, endTime } = req.body;
 
+    
+
     // Validate and update the selected slots if provided
     if (selectedSlots && selectedSlots.length > 0) {
       // Fetch the valid slots from the database
-      const validSlots = await Slot.find({ name: { $in: selectedSlots.map(slot => slot.name) } });
+      const validSlots = await Slot.find({ _id: { $in: selectedSlots.map(slot => slot._id) } });
 
       // If some slots are invalid, return an error
       if (validSlots.length !== selectedSlots.length) {
@@ -112,9 +114,25 @@ exports.updateAdvertisement = async (req, res) => {
     }
 
     // Set the status based on endTime if provided
-    if (endTime) {
-      req.body.status = endTime < Date.now() ? false : true;
+    // if (endTime) {
+    //   req.body.status = endTime < Date.now() ? false : true;
+    // }
+    const currentTime = new Date();
+    const endTime1 = new Date(endTime);
+    const timeDifference = endTime1 - currentTime;
+    // Only schedule if endTime is in the future
+    if (timeDifference <= 0) {
+      req.body.status = true;
+    }else{
+       req.body.status = false;
     }
+
+    if (endTime) {
+      data = { roomId, endTime, status: true };
+    } else {
+      data = { roomId, endTime };
+    }
+    
 
     // Update the advertisement
     const updatedAd = await Advertisement.findByIdAndUpdate(id, req.body, {
