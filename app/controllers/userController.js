@@ -121,152 +121,111 @@ exports.subscribeToRoom = async (req, res) => {
     const socket = getSocket();
     const { userId, roomId } = req.body;
 
-    // ===============
-
     // Find the user and room
     const user = await User.findById(userId);
     const room = await Room.findById(roomId);
 
-    const event = await Event.findById(roomId);
-    const HashTag = await HashTag.findById(roomId);
-    if (room) {
-      if (!user || !room) {
-        return res
-          .status(404)
-          .json({ success: false, error: "User or room not found" });
-      }
+    if (!user || !room) {
+      return res
+        .status(404)
+        .json({ success: false, error: "User or room not found" });
+    }
 
-      const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
+    const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
 
-      if (previousRoom && previousRoom.roomId !== roomId) {
-        req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
-          badges: true,
-          roomId: previousRoom.roomId,
-          content: `${user.name} has left the room`,
-        });
-        console.log(previousRoom.roomId, socket.id, "left");
+    if (previousRoom && previousRoom.roomId !== roomId) {
+      req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
+        badges: true,
+        roomId: previousRoom.roomId,
+        content: `${user.name} has left the room`,
+      });
+      console.log(previousRoom.roomId, socket.id, "left");
 
-        // Remove user from previous room
-        delete usersInRooms[socket.id];
+      // Remove user from previous room
+      delete usersInRooms[socket.id];
 
-        // Update the user list and room count for the previous room
-        const listUsers = getUserIdsByRoom(previousRoom.roomId);
-        const userList =
-          listUsers.length > 0
-            ? await User.find({ _id: { $in: listUsers } }).exec()
-            : [];
-
-        await Room.updateOne(
-          { _id: previousRoom.roomId },
-          { $set: { userCount: userList.length } } // Set the userCount
-        );
-        req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
-          roomId: previousRoom.roomId,
-          data: userList,
-        });
-
-        socket.leave(previousRoom.roomId); // Leave the previous room
-      }
-
-      // Subscribe the user to the new room
-      socket.join(roomId);
-      usersInRooms[socket.id] = { userId, roomId };
-
-      // Update the user list and room count for the new room
-      const listUsers = getUserIdsByRoom(roomId);
+      // Update the user list and room count for the previous room
+      const listUsers = getUserIdsByRoom(previousRoom.roomId);
       const userList =
         listUsers.length > 0
           ? await User.find({ _id: { $in: listUsers } }).exec()
           : [];
 
       await Room.updateOne(
-        { _id: roomId },
+        { _id: previousRoom.roomId },
         { $set: { userCount: userList.length } } // Set the userCount
       );
-      req.app.io.to(roomId).emit("Room_member_list", {
-        roomId,
+      req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
+        roomId: previousRoom.roomId,
         data: userList,
       });
-      req.app.io.to(roomId).emit("MemberUpdate", {
-        badges: true,
-        roomId,
-        content: `${user.userName} has joined`,
-      });
 
-      //Find active quiz
-      let quiz = await Quiz.find({
-        "room.id": roomId,
-        status: true,
-      });
-      console.log({ quiz });
-      let quizData;
-      if (quiz) quizData = quiz[0];
-
-      if (quizData?.endTime) {
-        const currentTime = new Date();
-        const endTime = new Date(quizData?.endTime);
-        const timeDifference = endTime - currentTime;
-        // Only schedule if endTime is in the future
-        if (timeDifference > 0) {
-          console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
-          //type QUIZ FOR QUIZ
-          req.app.io.to(roomId).emit("message", {
-            type: "QUIZ_STARTED",
-            roomId,
-            data: quizData ? quizData : "",
-          });
-        }
-      }
-
-      // const quiz = await Quiz.findOne({
-      //   'room.id' : roomId,
-      //   status: false
-      // });
-
-      //type QUIZ FOR QUIZ
-      // console.log("update quiz")
-      // req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
-
-      res.status(200).json({
-        success: true,
-        message: "User subscribed to room successfully",
-      });
+      socket.leave(previousRoom.roomId); // Leave the previous room
     }
-    if (event || HashTag) {
-      const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
 
-      if (previousRoom && previousRoom.roomId !== roomId) {
-        req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
-          badges: true,
-          roomId: previousRoom.roomId,
-          content: `${user.name} has left the room`,
+    // Subscribe the user to the new room
+    socket.join(roomId);
+    usersInRooms[socket.id] = { userId, roomId };
+
+    // Update the user list and room count for the new room
+    const listUsers = getUserIdsByRoom(roomId);
+    const userList =
+      listUsers.length > 0
+        ? await User.find({ _id: { $in: listUsers } }).exec()
+        : [];
+
+    await Room.updateOne(
+      { _id: roomId },
+      { $set: { userCount: userList.length } } // Set the userCount
+    );
+    req.app.io.to(roomId).emit("Room_member_list", {
+      roomId,
+      data: userList,
+    });
+    req.app.io.to(roomId).emit("MemberUpdate", {
+      badges: true,
+      roomId,
+      content: `${user.userName} has joined`,
+    });
+
+    //Find active quiz
+    let quiz = await Quiz.find({
+      "room.id": roomId,
+      status: true,
+    });
+    console.log({ quiz });
+    let quizData;
+    if (quiz) quizData = quiz[0];
+
+    if (quizData?.endTime) {
+      const currentTime = new Date();
+      const endTime = new Date(quizData?.endTime);
+      const timeDifference = endTime - currentTime;
+      // Only schedule if endTime is in the future
+      if (timeDifference > 0) {
+        console.log("QUIZ_STARTED" + roomId + "quiz started" + quizData);
+        //type QUIZ FOR QUIZ
+        req.app.io.to(roomId).emit("message", {
+          type: "QUIZ_STARTED",
+          roomId,
+          data: quizData ? quizData : "",
         });
-        console.log(previousRoom.roomId, socket.id, "left");
-
-        // Remove user from previous room
-        delete usersInRooms[socket.id];
-
-        // Update the user list and room count for the previous room
-        const listUsers = getUserIdsByRoom(previousRoom.roomId);
-        const userList =
-          listUsers.length > 0
-            ? await User.find({ _id: { $in: listUsers } }).exec()
-            : [];
       }
-      req.app.io.to(roomId).emit("Room_member_list", {
-        roomId,
-        data: userList,
-      });
-      req.app.io.to(roomId).emit("MemberUpdate", {
-        badges: true,
-        roomId,
-        content: `${user.userName} has joined`,
-      });
-      res.status(200).json({
-        success: true,
-        message: "User subscribed to room successfully",
-      });
-}
+    }
+
+    // const quiz = await Quiz.findOne({
+    //   'room.id' : roomId,
+    //   status: false
+    // });
+
+    //type QUIZ FOR QUIZ
+    // console.log("update quiz")
+    // req.app.io.to(roomId).emit("message", { type: "QUIZ_STARTED", roomId, data: quiz });
+
+    res.status(200).json({
+      success: true,
+      message: "User subscribed to room successfully",
+    });
   } catch (error) {
     console.error("Error subscribing to room:", error);
     res.status(500).json({ success: false, error: error.message });
@@ -449,6 +408,102 @@ exports.unsubscribeFromRoom = async (req, res) => {
         .json({ success: false, error: "User is not subscribed to this room" });
     }
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.subscribeToEvent = async (req, res) => {
+  try {
+    const socket = getSocket();
+    const { userId, roomId } = req.body;
+
+    // Find the user and room
+    const user = await User.findById(userId);
+
+    // const event = await Event.findById(roomId);
+
+    const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
+
+    if (previousRoom && previousRoom.roomId !== roomId) {
+      req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
+        badges: true,
+        roomId: previousRoom.roomId,
+        content: `${user.name} has left the room`,
+      });
+      console.log(previousRoom.roomId, socket.id, "left");
+
+      // Remove user from previous room
+      delete usersInRooms[socket.id];
+
+      // Update the user list and room count for the previous room
+      const listUsers = getUserIdsByRoom(previousRoom.roomId);
+      const userList =
+        listUsers.length > 0
+          ? await User.find({ _id: { $in: listUsers } }).exec()
+          : [];
+    }
+    req.app.io.to(roomId).emit("Room_member_list", {
+      roomId,
+      data: userList,
+    });
+    req.app.io.to(roomId).emit("MemberUpdate", {
+      badges: true,
+      roomId,
+      content: `${user.userName} has joined`,
+    });
+    res.status(200).json({
+      success: true,
+      message: "User subscribed to room successfully",
+    });
+  } catch (error) {
+    console.error("Error subscribing to room:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+exports.subscribeToHashTag = async (req, res) => {
+  try {
+    const socket = getSocket();
+    const { userId, roomId } = req.body;
+
+    // Find the user and room
+    const user = await User.findById(userId);
+    // const hashtag = await HashTag.findById(roomId);
+
+    const previousRoom = usersInRooms[socket.id]; // Get the previous room of the user
+
+    if (previousRoom && previousRoom.roomId !== roomId) {
+      req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
+        badges: true,
+        roomId: previousRoom.roomId,
+        content: `${user.name} has left the room`,
+      });
+      console.log(previousRoom.roomId, socket.id, "left");
+
+      // Remove user from previous room
+      delete usersInRooms[socket.id];
+
+      // Update the user list and room count for the previous room
+      const listUsers = getUserIdsByRoom(previousRoom.roomId);
+      const userList =
+        listUsers.length > 0
+          ? await User.find({ _id: { $in: listUsers } }).exec()
+          : [];
+    }
+    req.app.io.to(roomId).emit("Room_member_list", {
+      roomId,
+      data: userList,
+    });
+    req.app.io.to(roomId).emit("MemberUpdate", {
+      badges: true,
+      roomId,
+      content: `${user.userName} has joined`,
+    });
+    res.status(200).json({
+      success: true,
+      message: "User subscribed to room successfully",
+    });
+  } catch (error) {
+    console.error("Error subscribing to room:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
