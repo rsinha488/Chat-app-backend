@@ -15,5 +15,10 @@ router.put('/:userId', userController.updateUserDetail);
 
 router.post('/subscribe', userController.subscribeToRoom);
 
+router.post('/subscribe/event', userController.subscribeToEvent);
+
+router.post('/subscribe/hashtag', userController.subscribeToHashTag);
+
+
 
 module.exports = router;
