@@ -419,6 +419,7 @@ exports.subscribeToEvent = async (req, res) => {
 
     // Find the user and room
     const user = await User.findById(userId);
+    const room = await Room.findById(roomId);
 
     // const event = await Event.findById(roomId);
 
@@ -441,11 +442,27 @@ exports.subscribeToEvent = async (req, res) => {
         listUsers.length > 0
           ? await User.find({ _id: { $in: listUsers } }).exec()
           : [];
+          req.app.io.to(previousRoom.roomId).emit("Room_member_list", {
+            roomId: previousRoom.roomId,
+            data: userList,
+          });
+    
+          socket.leave(previousRoom.roomId); 
     }
-    req.app.io.to(roomId).emit("Room_member_list", {
-      roomId,
-      data: userList,
-    });
+     // Subscribe the user to the new room
+     socket.join(roomId);
+     usersInRooms[socket.id] = { userId, roomId };
+  // Update the user list and room count for the new room
+  const listUsers = getUserIdsByRoom(roomId);
+  const userList =
+    listUsers.length > 0
+      ? await User.find({ _id: { $in: listUsers } }).exec()
+      : [];
+
+      req.app.io.to(roomId).emit("Room_member_list", {
+        roomId,
+        data: userList,
+      });
     req.app.io.to(roomId).emit("MemberUpdate", {
       badges: true,
       roomId,
