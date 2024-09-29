@@ -3,8 +3,10 @@ const router = express.Router();
 const hashtagController = require("../controllers/hashTagController");
 
 //get all hashtag
-router.get("/rid=:roomId", hashtagController.getHashTagList);
+router.get('/',hashtagController.getAllHashTagList)
 
+//get all hashtag of particular room
+router.get("/rid=:roomId", hashtagController.getHashTagList);
 // Get hashtag details
 router.get("/rid=:roomId/hid=:hashtagId", hashtagController.getHashTag);
 //send HAstag message
