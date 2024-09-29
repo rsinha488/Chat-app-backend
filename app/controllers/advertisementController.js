@@ -59,7 +59,6 @@ exports.getAdvertisementDetail = async (req, res) => {
   }
 };
 
-
 // Soft delete an advertisement
 exports.softDeleteAdvertisement = async (req, res) => {
   try {
@@ -95,7 +94,9 @@ exports.updateAdvertisement = async (req, res) => {
     // Validate and update the selected slots if provided
     if (selectedSlots && selectedSlots.length > 0) {
       // Fetch the valid slots from the database
-      const validSlots = await Slot.find({ name: { $in: selectedSlots.map(slot => slot.name) } });
+      const validSlots = await Slot.find({
+        _id: { $in: selectedSlots.map((slot) => slot._id) },
+      });
 
       // If some slots are invalid, return an error
       if (validSlots.length !== selectedSlots.length) {
@@ -105,15 +106,30 @@ exports.updateAdvertisement = async (req, res) => {
       }
 
       // Convert validSlots to the format required for selectedSlots (_id, name)
-      req.body.selectedSlots = validSlots.map(slot => ({
+      req.body.selectedSlots = validSlots.map((slot) => ({
         _id: slot._id,
         name: slot.name,
       }));
     }
 
     // Set the status based on endTime if provided
+    // if (endTime) {
+    //   req.body.status = endTime < Date.now() ? false : true;
+    // }
+    const currentTime = new Date();
+    const endTime1 = new Date(endTime);
+    const timeDifference = endTime1 - currentTime;
+    // Only schedule if endTime is in the future
+    if (timeDifference <= 0) {
+      req.body.status = true;
+    } else {
+      req.body.status = false;
+    }
+
     if (endTime) {
-      req.body.status = endTime < Date.now() ? false : true;
+      data = { roomId, endTime, status: true };
+    } else {
+      data = { roomId, endTime };
     }
 
     // Update the advertisement
@@ -136,7 +152,6 @@ exports.updateAdvertisement = async (req, res) => {
   }
 };
 
-
 // Set advertisement click details (log user's click)
 exports.setAdvertisementClick = async (req, res) => {
   try {
@@ -145,19 +160,25 @@ exports.setAdvertisementClick = async (req, res) => {
 
     // Check if userId is provided
     if (!userId) {
-      return res.status(400).json({ success: false, message: 'User ID is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     // Check if the user exists in the User collection (optional, but recommended)
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Find the advertisement by ID
     const advertisement = await Advertisement.findById(id);
     if (!advertisement || advertisement.isDeleted) {
-      return res.status(404).json({ success: false, message: 'Advertisement not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Advertisement not found" });
     }
 
     // Add the user's click details to the click array
@@ -166,7 +187,9 @@ exports.setAdvertisementClick = async (req, res) => {
     // Save the updated advertisement document
     const updatedAd = await advertisement.save();
 
-    res.status(200).json({ success: true, message: 'Click recorded', data: updatedAd });
+    res
+      .status(200)
+      .json({ success: true, message: "Click recorded", data: updatedAd });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

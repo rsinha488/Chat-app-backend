@@ -67,11 +67,11 @@ exports.updateEventDetail = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Event endTime has already passed" });
     }
-
+    // Remove the `messages` field from the update if it exists in the request body
+    delete data.messages;
+    
     // Ensure that status is set to true if endTime is valid and in the future
-    data = { status: true, ...data };
-
-    console.log("Updated data:", data);
+    data = { ...data, status: true };
 
     // Find and update the event by ID
     const eventList = await Event.findByIdAndUpdate(id, data, {
@@ -128,10 +128,8 @@ exports.sendEventMessage = async (req, res) => {
 
     // Find the user and room
     const user = await User.findById({ _id: userId });
-    if (!user ) {
-      return res
-        .status(404)
-        .json({ success: false, error: "User  not found" });
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User  not found" });
     }
     let msg_id = new mongoose.Types.ObjectId();
     let message = {
