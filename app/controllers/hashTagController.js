@@ -65,13 +65,13 @@ exports.getHashTagList = async (req, res) => {
         type: "UPDATED_HASHTAG",
         hashtagId: hashtagId,
         roomId:roomId,
-        data: updatedHashtag,
+        data: message,
       });
   
       res.status(200).json({
         success: true,
         message: "Message sent successfully",
-        data: updatedHashtag,
+        data: message,
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
