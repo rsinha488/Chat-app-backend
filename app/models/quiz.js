@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const quizSchema = new mongoose.Schema({
+
   status: { type: Boolean, required: true, default: false },
   completed: { type: Boolean, required: true, default: false }, //quiz  completed or not
   question: {
@@ -9,6 +10,7 @@ const quizSchema = new mongoose.Schema({
     trim: true,
   },
   endTime: { type: Date, default: "" },
+  bgImage: { type: String, default: "" },
   options: {
     type: [
       {

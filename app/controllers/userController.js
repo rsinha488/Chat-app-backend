@@ -7,6 +7,7 @@ const { getSocket } = require("../../sockets");
 const bcrypt = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
+const Event = require("../models/event");
 const HashTag = require("../models/hashTag");
 
 const usersInRooms = {};
