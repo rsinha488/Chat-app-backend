@@ -8,12 +8,10 @@ const User = require("../models/user");
 exports.getHashTag = async (req, res) => {
   try {
     const { roomId, hashtagId } = req.params;
-    console.log({roomId,hashtagId})
     const quizzes = await HashTag.findOne({
       roomId: roomId,
-      msgId: hashtagId,
+      _id: hashtagId,
     });
-    console.log({quizzes})
     // console.log({ quizzes });
     res.status(200).json({ success: true, data: quizzes });
   } catch (error) {
