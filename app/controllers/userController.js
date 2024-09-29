@@ -8,6 +8,8 @@ const bcrypt = require("bcryptjs");
 
 const jwt = require("jsonwebtoken");
 const HashTag = require("../models/hashTag");
+const Event = require("../models/event");
+const HashTag = require("../models/hashTag");
 
 const usersInRooms = {};
 const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
