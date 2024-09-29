@@ -69,7 +69,7 @@ exports.updateEventDetail = async (req, res) => {
     }
     // Remove the `messages` field from the update if it exists in the request body
     delete data.messages;
-    
+
     // Ensure that status is set to true if endTime is valid and in the future
     data = { ...data, status: true };
 
@@ -145,13 +145,13 @@ exports.sendEventMessage = async (req, res) => {
     req.app.io.to(eventId).emit("eventMessage", {
       type: "EVENT_MESSAGE",
       eventId: eventId,
-      data: updatedevent,
+      data: message,
     });
 
     res.status(200).json({
       success: true,
       message: "Message sent successfully",
-      data: updatedevent,
+      data: message,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
