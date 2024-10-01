@@ -17,17 +17,20 @@ exports.createEvent = async (req, res) => {
 exports.getAllEvents = async (req, res) => {
   const { status } = req.params;
   let data = { isDeleted: false };
-  if (status=="true") {
+  if (status == "true") {
     data = { ...data, status: true };
-  }else if(status!=undefined){
+  } else if (status != undefined) {
     return res
-    .status(400)
-    .json({ success: false, message: "Status code is not defined" });
+      .status(400)
+      .json({ success: false, message: "Status code is not defined" });
   }
 
-  console.log(data,status,status==true,typeof(status))
+  // console.log(data,status,status==true,typeof(status))
   try {
-    const eventList = await Event.find(data).select(["-messages","-isDeleted"]);
+    const eventList = await Event.find(data).select([
+      "-messages",
+      "-isDeleted",
+    ]);
 
     // If event is not found, return 404
     if (!eventList) {
