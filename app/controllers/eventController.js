@@ -17,6 +17,7 @@ exports.createEvent = async (req, res) => {
 exports.getAllEvents = async (req, res) => {
   const { status } = req.params;
   let data = { isDeleted: false };
+
   if (status == "true") {
     data = { ...data, status: true };
   } else if (status != undefined) {
@@ -25,24 +26,34 @@ exports.getAllEvents = async (req, res) => {
       .json({ success: false, message: "Status code is not defined" });
   }
 
-  // console.log(data,status,status==true,typeof(status))
   try {
-    const eventList = await Event.find(data).select([
-      "-messages",
-      "-isDeleted",
-    ]);
+    const eventList = await Event.find(data).select(["-messages", "-isDeleted"]);
 
-    // If event is not found, return 404
-    if (!eventList) {
+    // If no events are found, return 404
+    if (!eventList || eventList.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "No Events found" });
     }
-    res.status(200).json({ success: true, data: eventList });
+
+    const currentTime = new Date();
+    const updatedEventList = await Promise.all(
+      eventList.map(async (event) => {
+        if (event.endTime && new Date(event.endTime) < currentTime && event.status === true) {
+          // Update the event's status to false in the database
+          event.status = false;
+          await Event.updateOne({ _id: event._id }, { status: false });
+        }
+        return event;
+      })
+    );
+
+    res.status(200).json({ success: true, data: updatedEventList });
   } catch (err) {
     res.status(500).json({ success: false, ...err });
   }
 };
+
 //Get one event
 exports.getOneEventDetail = async (req, res) => {
   try {
