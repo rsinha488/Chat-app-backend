@@ -15,8 +15,19 @@ exports.createEvent = async (req, res) => {
 
 //Get all events
 exports.getAllEvents = async (req, res) => {
+  const { status } = req.params;
+  let data = { isDeleted: false };
+  if (status=="true") {
+    data = { ...data, status: true };
+  }else if(status!=undefined){
+    return res
+    .status(400)
+    .json({ success: false, message: "Status code is not defined" });
+  }
+
+  console.log(data,status,status==true,typeof(status))
   try {
-    const eventList = await Event.find({ isDeleted: false });
+    const eventList = await Event.find(data).select(["-messages","-isDeleted"]);
 
     // If event is not found, return 404
     if (!eventList) {
