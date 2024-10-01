@@ -121,17 +121,20 @@ exports.updateAdvertisement = async (req, res) => {
     const timeDifference = endTime1 - currentTime;
     // Only schedule if endTime is in the future
     if (timeDifference <= 0) {
-      req.body.status = true;
-    } else {
       req.body.status = false;
-    }
-
-    if (endTime) {
-      data = { roomId, endTime, status: true };
+      return res
+      .status(400)
+      .json({ success: false, message: "Endtime already passed" });
     } else {
-      data = { roomId, endTime };
+      req.body.status = true;
     }
 
+    // if (endTime) {
+    //   data = { id, endTime, status: true };
+    // } else {
+    //   data = { id, endTime };
+    // }
+    console.log(req.body);
     // Update the advertisement
     const updatedAd = await Advertisement.findByIdAndUpdate(id, req.body, {
       new: true, // Return the updated document
