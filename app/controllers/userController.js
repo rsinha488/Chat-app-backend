@@ -814,3 +814,35 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+exports.getUserRelations = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the current user and populate friends and requests
+    const currentUser = await User.findById(userId)
+      .populate("friends", "-password") // Populate the friends list without the password
+      .populate("requests.userId", "-password"); // Populate the requests with user data, excluding the password
+
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Get all users except the current user
+    const allUsers = await User.find({ _id: { $ne: userId } }).select("-password");
+
+    // Structure the response
+    const response = {
+      success: true,
+      friends: currentUser.friends,       // Friends list
+      requests: currentUser.requests,     // Pending friend requests
+      allUsers: allUsers                  // All users except the current user
+    };
+
+    // Send the response
+    res.status(200).json(response);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+

@@ -35,4 +35,6 @@ router.post("/unblockUser", userController.unblockUser);
 
 router.get("/profile/:userId", userController.getUserProfile);
 
+ router.get ('/userRelations/:userId',userController.getUserRelations);
+
 module.exports = router;
