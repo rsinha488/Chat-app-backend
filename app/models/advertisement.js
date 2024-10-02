@@ -81,6 +81,22 @@ advertisementSchema.pre('findOneAndUpdate', function (next) {
   }
   next();
 });
+// // Middleware to update status if end time has passed on find
+// advertisementSchema.pre('find', async function (next) {
+//   const docs = await this.model.find(this.getQuery());
+
+//   const currentTime = Date.now();
+//   docs.forEach(async (doc) => {
+//     if (doc.endTime && doc.endTime < currentTime && doc.status === true) {
+//       // Update the status in the database if the endTime has passed
+//       await this.model.updateOne({ _id: doc._id }, { status: false });
+//     }
+//   });
+
+//   next();
+// });
+
+
 
 const Advertisement = mongoose.model('Advertisement', advertisementSchema);
 

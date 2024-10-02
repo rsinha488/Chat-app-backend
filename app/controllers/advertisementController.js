@@ -13,16 +13,51 @@ exports.createAdvertisement = async (req, res) => {
   }
 };
 // Get all advertisements (excluding soft-deleted ones)
+// Get all advertisements (excluding soft-deleted ones)
 exports.getAllAdvertisements = async (req, res) => {
+  const { status } = req.params;
+  let data = { isDeleted: false };
+
+  // Check the status parameter
+  if (status == "true") {
+    data = { ...data, status: true };
+  } else if (status != undefined) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Status code is not defined" });
+  }
+
   try {
-    const advertisements = await Advertisement.find({
-      isDeleted: false,
-    }).populate("selectedSlots", "name"); // Populate selectedSlots with only the name field
-    res.status(200).json({ success: true, data: advertisements });
+    // Fetch advertisements based on the query
+    const advertisements = await Advertisement.find(data).populate("selectedSlots", "name");
+
+    // If no advertisements are found, return 404
+    if (!advertisements || advertisements.length === 0) {
+      return res.status(404).json({ success: false, message: "No advertisements found" });
+    }
+
+    const currentTime = new Date();
+
+    // Update any advertisement whose endTime has passed
+    const updatedAdvertisements = await Promise.all(
+      advertisements.map(async (ad) => {
+        if (ad.endTime && new Date(ad.endTime) < currentTime && ad.status === true) {
+          // Update the status to false in the database
+          await Advertisement.updateOne({ _id: ad._id }, { status: false });
+          ad.status = false; // Also update the status in the response
+        }
+        return ad;
+      })
+    );
+
+    // Send the updated advertisements list
+    res.status(200).json({ success: true, data: updatedAdvertisements });
   } catch (err) {
+    // Handle any errors
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 // Get all active advertisements (excluding soft-deleted ones)
 exports.getAllActiveAdvertisements = async (req, res) => {
   try {
@@ -123,8 +158,8 @@ exports.updateAdvertisement = async (req, res) => {
     if (timeDifference <= 0) {
       req.body.status = false;
       return res
-      .status(400)
-      .json({ success: false, message: "Endtime already passed" });
+        .status(400)
+        .json({ success: false, message: "Endtime already passed" });
     } else {
       req.body.status = true;
     }
