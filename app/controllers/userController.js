@@ -9,10 +9,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Event = require("../models/event");
 const HashTag = require("../models/hashTag");
+const { default: mongoose } = require("mongoose");
 
 const usersInRooms = {};
 const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this securely in environment variables
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; // Token expiry duration
+
+const ObjectId = mongoose.Types.ObjectId;
 
 exports.createUser = async (req, res) => {
   const { userName, firstName, lastName, image, password, isAdmin } = req.body;
@@ -296,12 +299,29 @@ exports.updateUserDetail = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    const data = await User.find().select("-password");
-    res.status(200).json({ success: true, data: data });
+    // Find all users, excluding the password field
+    let users = await User.find().select("-password");
+
+    const currentTime = new Date();
+
+    // Loop through each user and update the status if blockedEndTime has passed
+    users = await Promise.all(users.map(async (user) => {
+      if (user.blockedEndTime && user.blockedEndTime < currentTime) {
+        // If the blockedEndTime has passed, set the status to false
+        user.status = false;
+        user.blockedEndTime = null;  // Reset blockedEndTime as it has passed
+        await user.save();  // Save the updated user document
+      }
+      return user;
+    }));
+
+    // Send the updated users list in the response
+    res.status(200).json({ success: true, data: users });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
 
 exports.leaveRoom = async (req, res) => {
   try {
@@ -541,3 +561,239 @@ exports.subscribeToHashTag = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+exports.sendFriendRequest = async (req, res) => {
+  const { senderId, receiverId } = req.body;
+  if (!ObjectId.isValid(senderId) || !ObjectId.isValid(receiverId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid sender or receiver ID",
+    });
+  }
+  try {
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+
+    if (!receiver) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if request already exists
+    const existingRequest = receiver.requests.find(
+      (request) => request.userId.toString() === senderId
+    );
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "Friend request already sent",
+      });
+    }
+
+    // Add friend request to receiver's requests array
+    receiver.requests.push({ userId: senderId });
+    await receiver.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Friend request sent",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+exports.acceptFriendRequest = async (req, res) => {
+  const { userId, requestId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    const request = user.requests.id(requestId);
+    console.log(request);
+    if (!request || request.status !== "pending") {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found or already processed",
+      });
+    }
+
+    // Update request status to accepted
+    request.status = "accepted";
+    await user.save();
+
+    // Add sender to user's friends list
+    const sender = await User.findById(request.userId);
+    user.friends.push(sender._id);
+    sender.friends.push(user._id);
+
+    await user.save();
+    await sender.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Friend request accepted",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+exports.blockUser = async (req, res) => {
+  const { blockerId, blockedId, endTime } = req.body;
+
+  try {
+    const blocker = await User.findById(blockerId);
+    const blocked = await User.findById(blockedId);
+
+    if (!blocked) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Check if the user is already blocked
+    if (blocker.blockedUsers.includes(blockedId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is already blocked" });
+    }
+
+    // Add blocked user to blocker's blockedUsers array
+    blocker.blockedUsers.push(blockedId);
+
+    // Set blockedEndTime and status
+    blocked.blockedEndTime = endTime;
+    blocked.status = true; // Status true indicates the user is blocked
+
+    // Save both users
+    await blocker.save();
+    await blocked.save();
+
+    res
+      .status(200)
+      .json({ success: true, message: "User successfully blocked" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.getFriendList = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate(
+      "friends",
+      "userName firstName lastName image"
+    );
+
+    if (!user) {
+      return res.status(404).json({success: false,
+      message: "User not found"});
+    }
+
+    res.status(200).json({
+      success: true,
+      friends: user.friends,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+exports.getFriendRequests = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate(
+      "requests.userId",
+      "userName firstName lastName image"
+    );
+
+    if (!user) {
+      return res.status(404).json({success: false,
+      message: "User not found"});
+    }
+
+    const pendingRequests = user.requests.filter(
+      (request) => request.status === "pending"
+    );
+
+    res.status(200).json({
+      success: true,
+      requests: pendingRequests,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+exports.rejectFriendRequest = async (req, res) => {
+  const { userId, requestId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    const request = user.requests.id(requestId);
+    if (!request || request.status !== "pending") {
+      return res.status(404).json({success: false,
+      message: "Request not found or already processed"});
+    }
+
+    // Update request status to rejected
+    request.status = "rejected";
+    await user.save();
+
+    res.status(200).json({success: true,
+      message: "Friend request rejected"});
+  } catch (err) {
+    res.status(500).json({success: false,
+      message: "Server error"});
+  }
+};
+
+exports.unblockUser = async (req, res) => {
+  const { blockerId, blockedId } = req.body;
+
+  try {
+    const blocker = await User.findById(blockerId);
+    const blocked = await User.findById(blockedId);
+
+    if (!blocked) {
+      return res.status(404).json({ success: false, message: "Blocked user not found" });
+    }
+
+    // Check if the user is actually blocked
+    if (!blocker.blockedUsers.includes(blockedId)) {
+      return res.status(400).json({ success: false, message: "User is not blocked" });
+    }
+
+    // Remove the blocked user from blocker's blockedUsers array
+    blocker.blockedUsers = blocker.blockedUsers.filter(id => id.toString() !== blockedId);
+
+    // Reset the blocked user's blockedEndTime and status
+    blocked.blockedEndTime = null;
+    blocked.status = false;
+
+    // Save both users
+    await blocker.save();
+    await blocked.save();
+
+    res.status(200).json({ success: true, message: "User successfully unblocked" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+

@@ -5,13 +5,6 @@ const { default: mongoose } = require("mongoose");
 const { getSocket } = require("../../sockets");
 const HashTag = require("../models/hashTag");
 
-// async function createHashtag(data) {
-//   try {
-
-//   } catch (error) {
-//     return error;
-//   }
-// }
 exports.sendMessage = async (req, res) => {
   try {
     const socket = getSocket();
@@ -72,18 +65,11 @@ exports.sendMessage = async (req, res) => {
     }
     console.log(message);
 
-    // await message.save();
 
     // Step 2: Push the message ID to the Room's messages array
     let updatedRoom = await Room.findByIdAndUpdate(roomId, {
       $push: { messages: message },
     });
-
-    // req.app.io.on("sendMessage", (user, room, msg) => {
-    //   // const data = { user: { ...user }, room: { ...room }, message: msg };
-    //   // console.log({ user, room, msg, data });
-    //   req.app.io.to(roomId).emit("msgReceived", message);
-    // });
 
     req.app.io.to(roomId).emit("message", message);
 
@@ -141,19 +127,11 @@ exports.sendEmojiReaction = async (req, res) => {
       }
     });
 
-    // console.log("msgfound", msgfound);
-    // await message.save();
-
     // Step 2: Push the message ID to the Room's messages array
     await Room.findByIdAndUpdate(roomId, {
       $set: { messages: msgfound },
     });
 
-    // req.app.io.on("sendMessage", (user, room, msg) => {
-    //   // const data = { user: { ...user }, room: { ...room }, message: msg };
-    //   // console.log({ user, room, msg, data });
-    //   req.app.io.to(roomId).emit("msgReceived", message);
-    // });
     const newMsg = msgfound.filter((e) => e._id.toString() === msgId);
     //type EMOJI FOR EMOJI
     req.app.io
