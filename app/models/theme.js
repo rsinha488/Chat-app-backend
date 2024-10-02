@@ -47,8 +47,8 @@ const ChatSchema = new mongoose.Schema({
 
 const ThemeSchema = new mongoose.Schema({
     theme: BasicThemeSchema,
-    activeQuiz: ActiveQuizSchema,
-    chat: ChatSchema,
+    // activeQuiz: ActiveQuizSchema,
+    // chat: ChatSchema,
     signup: SignUpThemeSchema,
     // Add other sub-schemas here
     header: {
@@ -58,10 +58,15 @@ const ThemeSchema = new mongoose.Schema({
         fontFamily: { type: String, required: true },
         fontSize: { type: String, required: true }
     },
-    sideBar: {
+    bubble: {
         backgroundColor: { type: String, required: true },
-        textColor: { type: String, required: true }
+        textColor: { type: String, required: true },
+        icon: { type: String, required: true },
     },
+    // sideBar: {
+    //     backgroundColor: { type: String, required: true },
+    //     textColor: { type: String, required: true }
+    // },
     
     // Continue for all other sections
     // menu: {
