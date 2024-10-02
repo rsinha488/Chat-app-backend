@@ -44,6 +44,40 @@ const userSchema = new mongoose.Schema({
       },
     },
   ],
+  blockedEndTime:{
+    type:Date,
+    default:""
+  },
+  blockedUsers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  ],
+  friends: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  ],
+  requests: [
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending'
+      }
+    }
+  ],
+  blockedEndTime: {
+    type: Date,
+    default: ""
+  },
 });
 
 const User = mongoose.model('User', userSchema);
