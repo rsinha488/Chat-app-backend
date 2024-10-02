@@ -796,4 +796,21 @@ exports.unblockUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+exports.getUserProfile = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find user by ID and exclude the password field
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Return the user data except the password
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
