@@ -10,9 +10,11 @@ const BasicThemeSchema = new mongoose.Schema({
 const SignUpThemeSchema = new mongoose.Schema({
     primaryLoginColor: { type: String, required: true },
     primaryRegisterColor: { type: String, required: true },
+    loginImage: { type: String, required: true },
     secondaryColor: { type: String, required: true },
     primaryLoginTextColor: { type: String, required: true },
     primaryRegisterTextColor: { type: String, required: true },
+    registerImage: { type: String, required: true },
     secondaryTextColor: { type: String, required: true }
 });
 
