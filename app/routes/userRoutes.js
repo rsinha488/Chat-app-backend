@@ -35,6 +35,9 @@ router.post("/unblockUser", userController.unblockUser);
 
 router.get("/profile/:userId", userController.getUserProfile);
 
- router.get ('/userRelations/:userId',userController.getUserRelations);
+router.get("/userRelations/:userId", userController.getUserRelations);
 
+router.put("/unsendFriendRequest", userController.unsendFriendRequest);
+
+router.post("/unfriend", userController.unfriend);
 module.exports = router;
