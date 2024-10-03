@@ -612,10 +612,13 @@ exports.acceptFriendRequest = async (req, res) => {
   const { userId, requestId } = req.body;
 
   try {
+    // Find the user who is accepting the friend request
     const user = await User.findById(userId);
 
+    // Find the specific friend request by requestId
     const request = user.requests.id(requestId);
-    console.log(request);
+
+    // Check if the request exists and is still pending
     if (!request || request.status !== "pending") {
       return res.status(404).json({
         success: false,
@@ -623,21 +626,24 @@ exports.acceptFriendRequest = async (req, res) => {
       });
     }
 
-    // Update request status to accepted
+    // Update the request status to accepted
     request.status = "accepted";
-    await user.save();
 
-    // Add sender to user's friends list
+    // Add the sender (who sent the friend request) to the user's friends list
     const sender = await User.findById(request.userId);
     user.friends.push(sender._id);
     sender.friends.push(user._id);
 
+    // Remove the request from the user's request array after processing
+    user.requests = user.requests.filter(r => r._id.toString() !== requestId);
+
+    // Save both the user and the sender with updated data
     await user.save();
     await sender.save();
 
     res.status(200).json({
       success: true,
-      message: "Friend request accepted",
+      message: "Friend request accepted and request removed",
     });
   } catch (err) {
     res.status(500).json({
@@ -646,6 +652,7 @@ exports.acceptFriendRequest = async (req, res) => {
     });
   }
 };
+
 
 exports.blockUser = async (req, res) => {
   const { blockerId, blockedId, endTime } = req.body;
@@ -744,25 +751,38 @@ exports.rejectFriendRequest = async (req, res) => {
   const { userId, requestId } = req.body;
 
   try {
+    // Find the user who is rejecting the friend request
     const user = await User.findById(userId);
 
+    // Find the specific request by requestId
     const request = user.requests.id(requestId);
+
+    // Check if the request exists and is still pending
     if (!request || request.status !== "pending") {
-      return res.status(404).json({success: false,
-      message: "Request not found or already processed"});
+      return res.status(404).json({
+        success: false,
+        message: "Request not found or already processed",
+      });
     }
 
-    // Update request status to rejected
-    request.status = "rejected";
+    // Remove the request from the user's requests array after rejecting it
+    user.requests = user.requests.filter(r => r._id.toString() !== requestId);
+
+    // Save the updated user without the rejected request
     await user.save();
 
-    res.status(200).json({success: true,
-      message: "Friend request rejected"});
+    res.status(200).json({
+      success: true,
+      message: "Friend request rejected and request removed",
+    });
   } catch (err) {
-    res.status(500).json({success: false,
-      message: "Server error"});
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
+
 
 exports.unblockUser = async (req, res) => {
   const { blockerId, blockedId } = req.body;
@@ -845,4 +865,105 @@ exports.getUserRelations = async (req, res) => {
   }
 };
 
+
+exports.unfriend = async (req, res) => {
+  const { userId, friendId } = req.body;
+
+  try {
+    // Find the user initiating the unfriend action
+    const user = await User.findById(userId);
+
+    // Find the friend being unfriended
+    const friend = await User.findById(friendId);
+
+    // Check if both users exist
+    if (!user || !friend) {
+      return res.status(404).json({
+        success: false,
+        message: "User or friend not found",
+      });
+    }
+
+    // Check if they are actually friends
+    if (!user.friends.includes(friendId) || !friend.friends.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Users are not friends",
+      });
+    }
+
+    // Remove the friend from the user's friends list
+    user.friends = user.friends.filter(id => id.toString() !== friendId);
+
+    // Remove the user from the friend's friends list
+    friend.friends = friend.friends.filter(id => id.toString() !== userId);
+
+    // Save both users after unfriending
+    await user.save();
+    await friend.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Friend successfully removed",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+exports.unsendFriendRequest = async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  // Validate that senderId and receiverId are valid ObjectIds
+  if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid sender or receiver ID",
+    });
+  }
+
+  try {
+    // Find both the sender and the receiver by their IDs
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+
+    if (!sender || !receiver) {
+      return res.status(404).json({
+        success: false,
+        message: "Sender or receiver not found",
+      });
+    }
+console.log(senderId,receiverId)
+    // Check if the receiver has a pending request from the sender
+    const requestIndex = receiver.requests.findIndex(
+      (req) => req.userId.toString() === senderId && req.status === "pending"
+    );
+console.log({requestIndex})
+    if (requestIndex === -1) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending friend request found",
+      });
+    }
+
+    // Remove the pending friend request from the receiver's requests array
+    receiver.requests.splice(requestIndex, 1);
+
+    // Save the updated receiver document
+    await receiver.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Friend request unsent successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
