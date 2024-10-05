@@ -190,50 +190,136 @@ exports.getMessage = async (req, res) => {
   }
 };
 
-// exports.getMessage = async (req, res) => {
-//   try {
-//     const { id } = req.params;
+exports.hideMessage = async (req, res) => {
+  const { roomId, messageId } = req.body;
 
-//     // Find the user and room
-//     // const user = await User.findById({_id: userId});
-//     const room = await Room.findById({ _id: id });
-//     if (!room) {
-//       return res
-//         .status(404)
-//         .json({ success: false, error: "User or room not found" });
-//     }
+  // Validate that roomId and messageId are valid ObjectIds
+  if (!mongoose.Types.ObjectId.isValid(roomId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid room or message ID",
+    });
+  }
 
-//     // const message = {
-//     //   _id : new mongoose.Types.ObjectId(),
-//     //   sender: user,
-//     //   room: roomId,
-//     //   content: content,
-//     // };
+  try {
+    // Find the room and the specific message
+    const room = await Room.findById(roomId);
 
-//     // await message.save();
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
 
-//     // Step 2: Push the message ID to the Room's messages array
-//     // await Room.findByIdAndUpdate(roomId, {
-//     //   $push: { messages: message },
-//     // });
+    // Find the message inside the room's messages array
+    const messageIndex = room.messages.findIndex(
+      (msg) => msg._id.toString() == messageId
+    );
 
-//     req.app.io.emit("getRoomUsersList", { roomId: id });
-//     // req.app.io.on("sendMessage", (user, room, msg) => {
-//     //   // const data = { user: { ...user }, room: { ...room }, message: msg };
-//     //   // console.log({ user, room, msg, data });
-//     //   req.app.io.to(roomId).emit("msgReceived", message);
-//     // });
+    if (messageIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found",
+      });
+    }
 
-//     // socket.to(roomId).emit("message", message);
+    // Set the "hide" attribute of the message to true
+    room.messages[messageIndex].hide = true;
 
-//     res
-//       .status(200)
-//       .json({
-//         success: true,
-//         message: "all room messages successfully",
-//         data: room.messages,
-//       });
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// };
+    // Save the updated room document
+    await room.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Message hidden successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+exports.hideMsgAndBanUser = async (req, res) => {
+  const { roomId, messageId, userId, endTime } = req.body;
+
+  // Validate roomId, messageId, and userId as ObjectId
+  if (
+    !mongoose.Types.ObjectId.isValid(roomId) ||
+    !mongoose.Types.ObjectId.isValid(messageId) ||
+    !mongoose.Types.ObjectId.isValid(userId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid room, message, or user ID",
+    });
+  }
+
+  try {
+    // Find the room and the user
+    const room = await Room.findById(roomId);
+    const user = await User.findById(userId);
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Find the message inside the room's messages array
+    const messageIndex = room.messages.findIndex(
+      (msg) => msg._id.toString() === messageId
+    );
+
+    if (messageIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found",
+      });
+    }
+
+    // Set the "hide" attribute of the message to true
+    room.messages[messageIndex].hide = true;
+
+    // Update user's ban status and blockedEndTime
+    user.blockedEndTime = new Date(endTime); // Set the specified endTime
+    user.status = true; // Set user status to true (banned)
+
+    // Save the updated room and user
+    await room.save();
+    await user.save();
+
+    // Schedule a job to unblock the user when blockedEndTime passes
+    setTimeout(async () => {
+      const currentUser = await User.findById(userId);
+      if (new Date() >= currentUser.blockedEndTime) {
+        currentUser.status = false; // Unblock the user by setting status to false
+        currentUser.blockedEndTime = null; // Clear the blockedEndTime
+        await currentUser.save();
+      }
+    }, new Date(endTime) - new Date()); // Schedule timeout based on remaining ban time
+
+    res.status(200).json({
+      success: true,
+      message: "Message hidden and user banned successfully",
+      status: true,
+      user: userId,
+      messageId: messageId,
+      blockedEndTime: endTime,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
