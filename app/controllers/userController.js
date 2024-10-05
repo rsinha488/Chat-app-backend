@@ -305,15 +305,17 @@ exports.getUser = async (req, res) => {
     const currentTime = new Date();
 
     // Loop through each user and update the status if blockedEndTime has passed
-    users = await Promise.all(users.map(async (user) => {
-      if (user.blockedEndTime && user.blockedEndTime < currentTime) {
-        // If the blockedEndTime has passed, set the status to false
-        user.status = false;
-        user.blockedEndTime = null;  // Reset blockedEndTime as it has passed
-        await user.save();  // Save the updated user document
-      }
-      return user;
-    }));
+    users = await Promise.all(
+      users.map(async (user) => {
+        if (user.blockedEndTime && user.blockedEndTime < currentTime) {
+          // If the blockedEndTime has passed, set the status to false
+          user.status = false;
+          user.blockedEndTime = null; // Reset blockedEndTime as it has passed
+          await user.save(); // Save the updated user document
+        }
+        return user;
+      })
+    );
 
     // Send the updated users list in the response
     res.status(200).json({ success: true, data: users });
@@ -321,7 +323,6 @@ exports.getUser = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
-
 
 exports.leaveRoom = async (req, res) => {
   try {
@@ -596,6 +597,11 @@ exports.sendFriendRequest = async (req, res) => {
     receiver.requests.push({ userId: senderId });
     await receiver.save();
 
+    req.app.io.emit("/notification", {
+      sender: sender,
+      receiver: receiver,
+      message: `Friend request sent to ${receiver.firstName}  ${receiver.lastName} `,
+    });
     res.status(200).json({
       success: true,
       message: "Friend request sent",
@@ -635,12 +641,16 @@ exports.acceptFriendRequest = async (req, res) => {
     sender.friends.push(user._id);
 
     // Remove the request from the user's request array after processing
-    user.requests = user.requests.filter(r => r._id.toString() !== requestId);
+    user.requests = user.requests.filter((r) => r._id.toString() !== requestId);
 
     // Save both the user and the sender with updated data
     await user.save();
     await sender.save();
-
+    req.app.io.emit("/notification", {
+      sender: sender,
+      receiver: user,
+      message: `Friend request accepted `,
+    });
     res.status(200).json({
       success: true,
       message: "Friend request accepted and request removed",
@@ -652,7 +662,6 @@ exports.acceptFriendRequest = async (req, res) => {
     });
   }
 };
-
 
 exports.blockUser = async (req, res) => {
   const { blockerId, blockedId, endTime } = req.body;
@@ -703,8 +712,9 @@ exports.getFriendList = async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).json({success: false,
-      message: "User not found"});
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({
@@ -728,8 +738,9 @@ exports.getFriendRequests = async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).json({success: false,
-      message: "User not found"});
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const pendingRequests = user.requests.filter(
@@ -748,14 +759,15 @@ exports.getFriendRequests = async (req, res) => {
   }
 };
 exports.rejectFriendRequest = async (req, res) => {
-  const { userId, requestId } = req.body;
-
+  const { userId, requestId } = req.body;    
+  
   try {
     // Find the user who is rejecting the friend request
     const user = await User.findById(userId);
-
+    
     // Find the specific request by requestId
     const request = user.requests.id(requestId);
+    const sender = await User.findById(request.userId);
 
     // Check if the request exists and is still pending
     if (!request || request.status !== "pending") {
@@ -766,11 +778,15 @@ exports.rejectFriendRequest = async (req, res) => {
     }
 
     // Remove the request from the user's requests array after rejecting it
-    user.requests = user.requests.filter(r => r._id.toString() !== requestId);
+    user.requests = user.requests.filter((r) => r._id.toString() !== requestId);
 
     // Save the updated user without the rejected request
     await user.save();
-
+    req.app.io.emit("/notification", {
+      sender:sender,
+      receiver: user,
+      message: `Friend request rejected`
+    });
     res.status(200).json({
       success: true,
       message: "Friend request rejected and request removed",
@@ -783,7 +799,6 @@ exports.rejectFriendRequest = async (req, res) => {
   }
 };
 
-
 exports.unblockUser = async (req, res) => {
   const { blockerId, blockedId } = req.body;
 
@@ -792,16 +807,22 @@ exports.unblockUser = async (req, res) => {
     const blocked = await User.findById(blockedId);
 
     if (!blocked) {
-      return res.status(404).json({ success: false, message: "Blocked user not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Blocked user not found" });
     }
 
     // Check if the user is actually blocked
     if (!blocker.blockedUsers.includes(blockedId)) {
-      return res.status(400).json({ success: false, message: "User is not blocked" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User is not blocked" });
     }
 
     // Remove the blocked user from blocker's blockedUsers array
-    blocker.blockedUsers = blocker.blockedUsers.filter(id => id.toString() !== blockedId);
+    blocker.blockedUsers = blocker.blockedUsers.filter(
+      (id) => id.toString() !== blockedId
+    );
 
     // Reset the blocked user's blockedEndTime and status
     blocked.blockedEndTime = null;
@@ -811,7 +832,9 @@ exports.unblockUser = async (req, res) => {
     await blocker.save();
     await blocked.save();
 
-    res.status(200).json({ success: true, message: "User successfully unblocked" });
+    res
+      .status(200)
+      .json({ success: true, message: "User successfully unblocked" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -824,7 +847,9 @@ exports.getUserProfile = async (req, res) => {
     const user = await User.findById(userId).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Return the user data except the password
@@ -844,18 +869,22 @@ exports.getUserRelations = async (req, res) => {
       .populate("requests.userId", "-password"); // Populate the requests with user data, excluding the password
 
     if (!currentUser) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     // Get all users except the current user
-    const allUsers = await User.find({ _id: { $ne: userId } }).select("-password");
+    const allUsers = await User.find({ _id: { $ne: userId } }).select(
+      "-password"
+    );
 
     // Structure the response
     const response = {
       success: true,
-      friends: currentUser.friends,       // Friends list
-      requests: currentUser.requests,     // Pending friend requests
-      allUsers: allUsers                  // All users except the current user
+      friends: currentUser.friends, // Friends list
+      requests: currentUser.requests, // Pending friend requests
+      allUsers: allUsers, // All users except the current user
     };
 
     // Send the response
@@ -864,7 +893,6 @@ exports.getUserRelations = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 exports.unfriend = async (req, res) => {
   const { userId, friendId } = req.body;
@@ -893,10 +921,10 @@ exports.unfriend = async (req, res) => {
     }
 
     // Remove the friend from the user's friends list
-    user.friends = user.friends.filter(id => id.toString() !== friendId);
+    user.friends = user.friends.filter((id) => id.toString() !== friendId);
 
     // Remove the user from the friend's friends list
-    friend.friends = friend.friends.filter(id => id.toString() !== userId);
+    friend.friends = friend.friends.filter((id) => id.toString() !== userId);
 
     // Save both users after unfriending
     await user.save();
@@ -918,7 +946,10 @@ exports.unsendFriendRequest = async (req, res) => {
   const { senderId, receiverId } = req.body;
 
   // Validate that senderId and receiverId are valid ObjectIds
-  if (!mongoose.Types.ObjectId.isValid(senderId) || !mongoose.Types.ObjectId.isValid(receiverId)) {
+  if (
+    !mongoose.Types.ObjectId.isValid(senderId) ||
+    !mongoose.Types.ObjectId.isValid(receiverId)
+  ) {
     return res.status(400).json({
       success: false,
       message: "Invalid sender or receiver ID",
@@ -936,12 +967,12 @@ exports.unsendFriendRequest = async (req, res) => {
         message: "Sender or receiver not found",
       });
     }
-console.log(senderId,receiverId)
+    console.log(senderId, receiverId);
     // Check if the receiver has a pending request from the sender
     const requestIndex = receiver.requests.findIndex(
       (req) => req.userId.toString() === senderId && req.status === "pending"
     );
-console.log({requestIndex})
+    console.log({ requestIndex });
     if (requestIndex === -1) {
       return res.status(400).json({
         success: false,
@@ -966,4 +997,3 @@ console.log({requestIndex})
     });
   }
 };
-
