@@ -970,7 +970,7 @@ exports.unsendFriendRequest = async (req, res) => {
     console.log(senderId, receiverId);
     // Check if the receiver has a pending request from the sender
     const requestIndex = receiver.requests.findIndex(
-      (req) => req.userId.toString() === senderId && req.status === "pending"
+      (req) => req.userId == senderId && req.status == "pending"
     );
     console.log({ requestIndex });
     if (requestIndex === -1) {

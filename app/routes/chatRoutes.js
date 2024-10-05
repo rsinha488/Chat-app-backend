@@ -8,4 +8,8 @@ router.post('/sendEmojiReaction', chatController.sendEmojiReaction);
 
 router.get('/:id', chatController.getMessage);
 
+router.post('/hide',chatController.hideMessage);
+
+router.post('/hide/ban',chatController.hideMsgAndBanUser);
+
 module.exports = router;
