@@ -597,10 +597,10 @@ exports.sendFriendRequest = async (req, res) => {
     receiver.requests.push({ userId: senderId });
     await receiver.save();
 
-    req.app.io.emit("/notification", {
+    req.app.io.emit("notification", {
       sender: sender,
       receiver: receiver,
-      message: `Friend request sent to ${receiver.firstName}  ${receiver.lastName} `,
+      message: `Friend request sent `,
     });
     res.status(200).json({
       success: true,
@@ -646,9 +646,9 @@ exports.acceptFriendRequest = async (req, res) => {
     // Save both the user and the sender with updated data
     await user.save();
     await sender.save();
-    req.app.io.emit("/notification", {
-      sender: sender,
-      receiver: user,
+    req.app.io.emit("notification", {
+      sender: user,
+      receiver: sender,
       message: `Friend request accepted `,
     });
     res.status(200).json({
@@ -664,7 +664,7 @@ exports.acceptFriendRequest = async (req, res) => {
 };
 
 exports.blockUser = async (req, res) => {
-  const { blockerId, blockedId, endTime } = req.body;
+  const { blockerId, blockedId } = req.body;
 
   try {
     const blocker = await User.findById(blockerId);
@@ -687,7 +687,7 @@ exports.blockUser = async (req, res) => {
     blocker.blockedUsers.push(blockedId);
 
     // Set blockedEndTime and status
-    blocked.blockedEndTime = endTime;
+    // blocked.blockedEndTime = endTime;
     blocked.status = true; // Status true indicates the user is blocked
 
     // Save both users
@@ -782,9 +782,9 @@ exports.rejectFriendRequest = async (req, res) => {
 
     // Save the updated user without the rejected request
     await user.save();
-    req.app.io.emit("/notification", {
-      sender:sender,
-      receiver: user,
+    req.app.io.emit("notification", {
+      sender:user,
+      receiver: sender,
       message: `Friend request rejected`
     });
     res.status(200).json({
