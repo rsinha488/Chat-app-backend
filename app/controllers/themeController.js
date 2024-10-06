@@ -1,3 +1,4 @@
+const Room = require("../models/room");
 const DataModel = require("../models/theme");
 
 // Create a new data entry
@@ -63,6 +64,19 @@ exports.getAllData = async (req, res) => {
   try {
     const allData = await DataModel.find();
     res.json({ success: true, data: allData });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.applyForAll = async (req, res) => {
+  try {
+    const { bgcolor, color } = req.body;
+
+    await DataModel.updateMany({}, { 'header.backgroundColor': bgcolor, 'header.textColor': color, 'bubble.backgroundColor': bgcolor, 'bubble.textColor': color });
+    await Room.updateMany({}, { primaryBgColor: bgcolor, primaryTextColor: color });
+
+    res.json({ success: true, message: "Update Colors for all" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
