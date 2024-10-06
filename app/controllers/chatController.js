@@ -19,6 +19,7 @@ exports.sendMessage = async (req, res) => {
         .json({ success: false, error: "User or room not found" });
     }
     let msg_id = new mongoose.Types.ObjectId();
+    const createdOn = new Date(); // Get the current date and time
     let message = {
       _id: msg_id,
       sender: user,
@@ -26,6 +27,7 @@ exports.sendMessage = async (req, res) => {
       room: roomId,
       content: content,
       emojiReaction: [],
+      createdOn: createdOn, // Add createdOn attribute
     };
 
     // const text = "#123abc! more text #456def, and #789ghi here";
@@ -323,3 +325,86 @@ exports.hideMsgAndBanUser = async (req, res) => {
     });
   }
 };
+exports.reportMessage = async (req, res) => {
+  const { roomId, messageId, userId } = req.body;
+
+  // Validate that roomId and messageId are valid ObjectIds
+  if (!mongoose.Types.ObjectId.isValid(roomId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid room or message ID",
+    });
+  }
+
+  try {
+    // Find the room
+    const room = await Room.findById(roomId);
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: "Room not found",
+      });
+    }
+
+    // Find the index of the message inside the room's messages array
+    const messageIndex = room.messages.findIndex(
+      (msg) => msg._id.toString() === messageId
+    );
+
+    if (messageIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found",
+      });
+    }
+
+    // Check if the message already has the report attribute
+    if (!room.messages[messageIndex].hasOwnProperty('report')) {
+      room.messages[messageIndex].report = false; // Initialize if not present
+    }
+    
+    if (!room.messages[messageIndex].hasOwnProperty('reportedBy')) {
+      room.messages[messageIndex].reportedBy = []; // Initialize if not present
+    }
+
+    // Check if the user has already reported this message
+    if (room.messages[messageIndex].reportedBy.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Message already reported by this user",
+      });
+    }
+
+    // Update the report status and add the userId to reportedBy
+    room.messages[messageIndex].report = true;
+    room.messages[messageIndex].reportedBy.push(userId);
+
+    // Save the updated room document
+    await room.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Message reported successfully",
+      data: {
+        messageId: room.messages[messageIndex]._id,
+        report: room.messages[messageIndex].report,
+        reportedBy: room.messages[messageIndex].reportedBy,
+        me:room.messages[messageIndex]
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+
+
+
+
+
+

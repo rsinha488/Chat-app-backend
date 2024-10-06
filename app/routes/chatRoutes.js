@@ -12,4 +12,6 @@ router.post('/hide',chatController.hideMessage);
 
 router.post('/hide/ban',chatController.hideMsgAndBanUser);
 
+router.post("/reportMsg",chatController.reportMessage)
+
 module.exports = router;
