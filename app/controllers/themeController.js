@@ -72,8 +72,10 @@ exports.getAllData = async (req, res) => {
 exports.applyForAll = async (req, res) => {
   try {
     const { bgcolor, color } = req.body;
-
-    await DataModel.updateMany({}, { 'header.backgroundColor': bgcolor, 'header.textColor': color, 'bubble.backgroundColor': bgcolor, 'bubble.textColor': color });
+    
+    await DataModel.updateMany({}, { 'header.backgroundColor': bgcolor, 'header.textColor': color, 'bubble.backgroundColor': bgcolor, 'bubble.textColor': color,
+    'signup.primaryLoginColor' : bgcolor, 'signup.primaryRegisterColor': bgcolor, 'signup.primaryLoginTextColor': color, 'signup.primaryRegisterTextColor': color
+  });
     await Room.updateMany({}, { primaryBgColor: bgcolor, primaryTextColor: color });
 
     res.json({ success: true, message: "Update Colors for all" });
