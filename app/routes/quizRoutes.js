@@ -2,19 +2,20 @@
 const express = require('express');
 const router = express.Router();
 const quizController = require('../controllers/quizController');
+const { authenticate } = require('../utils/authenticateUser');
 
 // Get all quizzes
-router.get('/',quizController.getQuizzes);
+router.get('/',authenticate, quizController.getQuizzes);
 // create quiz question
-router.post('/', quizController.createQuiz);
+router.post('/', authenticate, quizController.createQuiz);
 // take quiz and store users and quiz info
-router.post('/takeQuiz',quizController.takeQuizzes);
+router.post('/takeQuiz',authenticate, quizController.takeQuizzes);
 // Get all quiz by RoomId
-router.get('/rid=:roomId',quizController.getQuizByRoomId);
+router.get('/rid=:roomId',authenticate, quizController.getQuizByRoomId);
 //update Quiz by _id
-router.put('/:id',quizController.updateQuiz);
+router.put('/:id',authenticate, quizController.updateQuiz);
 // Delete a quiz by ID
-router.delete('/:id',quizController.deleteQuiz);
+router.delete('/:id',authenticate, quizController.deleteQuiz);
 //Update quiz row
-router.put('/updateQuizRow/:id',quizController.updateQuizRow)
+router.put('/updateQuizRow/:id',authenticate, quizController.updateQuizRow)
 module.exports = router;

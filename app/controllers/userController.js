@@ -65,7 +65,7 @@ exports.createUser = async (req, res) => {
 };
 
 exports.userLogin = async (req, res) => {
-  const { userName, password } = req.body;
+  const { userName, password, isAdmin } = req.body;
 
   try {
     if (!userName || !password) {
@@ -75,7 +75,7 @@ exports.userLogin = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ userName });
+    const user = isAdmin ? await User.findOne({ userName, isAdmin: true }) : await User.findOne({ userName });
 
     if (!user) {
       return res
