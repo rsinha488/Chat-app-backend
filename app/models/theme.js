@@ -90,7 +90,8 @@ const ThemeSchema = new mongoose.Schema({
     //     }
     // },
     Other: {
-        supportEmail: { type: String }
+        supportEmail: { type: String },
+        chatrule: { type: String },
     }
 });
 
