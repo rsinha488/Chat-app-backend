@@ -381,10 +381,14 @@ exports.reportMessage = async (req, res) => {
     room.messages[messageIndex].reportedBy.push(userId);
 
     // Save the updated room document
-    await room.save();
-    // let updatedRoom = await Room.findByIdAndUpdate(roomId, {
-    //   $push: { messages: room.messages[messageIndex] },
-    // });
+    // await room.save();
+    let updatedRoom = await Room.findByIdAndUpdate(roomId, {
+      // $push: { messages: room.messages[messageIndex] },
+      
+        $set: { [`messages.${messageIndex}`]: room.messages[messageIndex] } 
+      },
+      { new: true }  // Returns the updated document
+    );
     res.status(200).json({
       success: true,
       message: "Message reported successfully",
@@ -394,6 +398,7 @@ exports.reportMessage = async (req, res) => {
         reportedBy: room.messages[messageIndex].reportedBy,
         me:room.messages[messageIndex]
       },
+      updatedData:updatedRoom
     });
   } catch (err) {
     res.status(500).json({
