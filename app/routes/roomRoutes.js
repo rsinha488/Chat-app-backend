@@ -10,4 +10,6 @@ router.get("/", authenticate, roomController.getRoomsList);
 //roomId in params (id)
 router.put("/updateRow/:id", authenticate, roomController.updateRoomRow);
 
+router.get("/messages/:roomId",roomController.getRoomMessages)
+
 module.exports = router;
