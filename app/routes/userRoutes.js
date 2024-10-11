@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
+const { verifytoken } = require("../utils/authenticateUser");
 
 router.get("/", userController.getUser);
 
@@ -40,4 +41,7 @@ router.get("/userRelations/:userId", userController.getUserRelations);
 router.post("/unsend", userController.unsendFriendRequest);
 
 router.post("/unfriend", userController.unfriend);
+
+router.post("/verifytoken", verifytoken);
+
 module.exports = router;
