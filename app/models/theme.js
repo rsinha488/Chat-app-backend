@@ -69,26 +69,6 @@ const ThemeSchema = new mongoose.Schema({
   //     backgroundColor: { type: String, required: true },
   //     textColor: { type: String, required: true }
   // },
-
-  // Continue for all other sections
-  // menu: {
-  //     friendsMenuLocation: {
-  //         on_chat_screen: { type: Boolean, required: true },
-  //         in_hamburger_menu: { type: Boolean, required: true }
-  //     },
-  //     fanzonesMenuLocation: {
-  //         in_hamburger_menu: { type: Boolean, required: true }
-  //     },
-  //     leaderboardMenuLocation: {
-  //         in_hamburger_menu: { type: Boolean, required: true }
-  //     },
-  //     profileMenuLocation: {
-  //         in_hamburger_menu: { type: Boolean, required: true }
-  //     },
-  //     helpMenuLocation: {
-  //         in_hamburger_menu: { type: Boolean, required: true }
-  //     }
-  // },
   fontFamily: [
     {
       type: {
