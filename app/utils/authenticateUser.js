@@ -18,7 +18,8 @@ exports.authenticate = async (req, res, next) => {
 
     const targetTime = moment(user.blockedEndTime).valueOf();
     const currentTime = moment().valueOf();
-
+    console.log(currentTime < targetTime)
+    console.log(currentTime , targetTime)
     if (currentTime < targetTime && user.blockedEndTime) {
       req.app.io.emit("overall_notification", { ...user?._doc, type: "ban" });
       return res.status(403).json({ message: "User is Banned", user: user });
