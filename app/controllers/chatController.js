@@ -229,6 +229,7 @@ exports.hideMessage = async (req, res) => {
     // Set the "hide" attribute of the message to true
     room.messages[messageIndex].hide = true;
 
+    req.app.io.emit("message", { ...room.messages[messageIndex], type: "remove"})
     // Save the updated room document
     await room.save();
 
@@ -295,6 +296,8 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Update user's ban status and blockedEndTime
     user.blockedEndTime = new Date(endTime); // Set the specified endTime
     user.status = true; // Set user status to true (banned)
+
+    req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
 
     // Save the updated room and user
     await room.save();
