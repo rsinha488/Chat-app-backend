@@ -289,7 +289,6 @@ exports.hideMsgAndBanUser = async (req, res) => {
         message: "Message not found",
       });
     }
-
     // Set the "hide" attribute of the message to true
     room.messages[messageIndex].hide = true;
 
