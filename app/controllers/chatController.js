@@ -296,8 +296,8 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Update user's ban status and blockedEndTime
     user.blockedEndTime = endTime; // Set the specified endTime
     user.status = true; // Set user status to true (banned)
-
-    req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
+    console.log({ ...user, type: "ban"},"...user")
+    req.app.io.emit("overall_notification", { ...user?._doc, blockedEndTime : endTime, type: "ban"});
 
     // Save the updated room and user
     await room.save();
@@ -306,7 +306,7 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Schedule a job to unblock the user when blockedEndTime passes
     setTimeout(async () => {
       const currentUser = await User.findById(userId);
-      if (new Date() >= currentUser.blockedEndTime) {
+      if (new Date() >= new Date(currentUser.blockedEndTime)) {
         currentUser.status = false; // Unblock the user by setting status to false
         currentUser.blockedEndTime = null; // Clear the blockedEndTime
         await currentUser.save();
