@@ -294,7 +294,7 @@ exports.hideMsgAndBanUser = async (req, res) => {
     room.messages[messageIndex].hide = true;
 
     // Update user's ban status and blockedEndTime
-    user.blockedEndTime = new Date(endTime); // Set the specified endTime
+    user.blockedEndTime = endTime; // Set the specified endTime
     user.status = true; // Set user status to true (banned)
 
     req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
