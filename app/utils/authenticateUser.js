@@ -13,7 +13,6 @@ exports.authenticate = async(req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
-
     const user = await User.findOne({_id : decoded.userId})
     if (new Date() >= new Date(user.blockedEndTime)) {
       req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
