@@ -80,6 +80,9 @@ const ThemeSchema = new mongoose.Schema({
             type: Number,
             default: 14,
           },
+          fontName: {
+            type: String
+          },
         },
       default: [],
     },

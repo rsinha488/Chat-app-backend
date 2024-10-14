@@ -159,6 +159,9 @@ exports.getMessage = async (req, res) => {
     // Find the room by ID
     const room = await Room.findById(id).populate({
       path: "messages",
+      match: {
+        $or: [{ report: { $exists: false } }, { report: false }]
+      },
       options: {
         sort: { _id: -1 }, // Sort by newest messages first
         skip: (page - 1) * limit,
