@@ -150,6 +150,74 @@ exports.sendEmojiReaction = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+// exports.getMessage = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { page = 1, limit = 20 } = req.query; // Default to page 1, limit 20
+
+//     // Use aggregation pipeline to find and filter the messages
+//     const roomMessages = await Room.aggregate([
+//       { $match: { _id: new mongoose.Types.ObjectId(id) } }, // Match the room by ID
+//       { $unwind: "$messages" }, // Unwind the messages array
+//       {
+//         $lookup: {
+//           from: "messages", // Assuming the messages are stored in a separate collection
+//           localField: "messages",
+//           foreignField: "_id",
+//           as: "messageDetails",
+//         },
+//       },
+//       { $unwind: "$messageDetails" }, // Unwind the message details
+//       {
+//         $match: {
+//           $or: [
+//             { "messageDetails.report": { $exists: false } },  // Messages where 'report' doesn't exist
+//             { "messageDetails.report": { $ne: true } }        // Messages where 'report' is not true
+//           ],
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: "$_id",
+//           messages: { $push: "$messageDetails" },  // Group back the filtered messages
+//         },
+//       },
+//       {
+//         $project: {
+//           messages: {
+//             $slice: ["$messages", (page - 1) * limit, parseInt(limit, 10)], // Apply pagination
+//           },
+//         },
+//       },
+//     ]);
+
+//     if (!roomMessages.length) {
+//       return res.status(404).json({ success: false, error: "Room not found or no messages available" });
+//     }
+
+//     // Calculate total messages for pagination info
+//     const totalMessagesCount = await Room.aggregate([
+//       { $match: { _id: new mongoose.Types.ObjectId(id) } },
+//       { $project: { messageCount: { $size: "$messages" } } },
+//     ]);
+
+//     const totalMessages = totalMessagesCount.length ? totalMessagesCount[0].messageCount : 0;
+//     const totalPages = Math.ceil(totalMessages / limit);
+
+//     req.app.io.emit("getRoomUsersList", { roomId: id });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "All room messages successfully retrieved",
+//       data: roomMessages[0].messages,
+//       page: parseInt(page, 10),
+//       totalPages,
+//       totalMessages,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// };
 
 exports.getMessage = async (req, res) => {
   try {
@@ -160,7 +228,10 @@ exports.getMessage = async (req, res) => {
     const room = await Room.findById(id).populate({
       path: "messages",
       match: {
-        $or: [{ report: { $exists: false } }, { report: false }]
+        $or: [
+          { report: { $exists: false } },   // Messages where 'report' field doesn't exist
+          { report: { $ne: true } }         // Messages where 'report' is not true
+        ]
       },
       options: {
         sort: { _id: -1 }, // Sort by newest messages first
