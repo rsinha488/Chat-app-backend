@@ -7,7 +7,7 @@ router.post('/sendMessage',  authenticate, chatController.sendMessage);
 
 router.post('/sendEmojiReaction',  authenticate, chatController.sendEmojiReaction);
 
-router.get('/:id',   chatController.getMessage);
+router.get('/:id',  authenticate, chatController.getMessage);
 
 router.post('/hide', authenticate, chatController.hideMessage);
 
