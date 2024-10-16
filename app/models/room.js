@@ -11,6 +11,10 @@ const roomSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: []
   }],
+  fontFamily: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   userCount: {
     type: Number,
     default: 0
