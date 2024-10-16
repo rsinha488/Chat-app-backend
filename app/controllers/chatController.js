@@ -219,53 +219,98 @@ exports.sendEmojiReaction = async (req, res) => {
 //   }
 // };
 
+// exports.getMessage = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { page = 1, limit = 20 } = req.query; // Default to page 1, limit 20
+
+//     // Find the room by ID
+//     const room = await Room.findById(id).populate({
+//       path: "messages",
+//       match: {
+//         $or: [
+//           { report: { $exists: false } },   // Messages where 'report' field doesn't exist
+//           { report: { $ne: true } }         // Messages where 'report' is not true
+//         ]
+//       },
+//       options: {
+//         sort: { _id: -1 }, // Sort by newest messages first
+//         skip: (page - 1) * limit,
+//         limit: parseInt(limit, 10),
+//       },
+//     });
+
+//     if (!room) {
+//       return res.status(404).json({ success: false, error: "Room not found" });
+//     }
+
+//     // Get total number of messages for pagination info
+//     const totalMessages = await Room.aggregate([
+//       { $match: { _id: room._id } },
+//       { $project: { messageCount: { $size: "$messages" } } },
+//     ]);
+
+//     const totalPages = Math.ceil(totalMessages[0].messageCount / limit);
+
+//     req.app.io.emit("getRoomUsersList", { roomId: id });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "All room messages successfully retrieved",
+//       data: room.messages,
+//       page: parseInt(page, 10),
+//       totalPages,
+//       totalMessages: totalMessages[0].messageCount,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// };
+
 exports.getMessage = async (req, res) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 20 } = req.query; // Default to page 1, limit 20
 
-    // Find the room by ID
-    const room = await Room.findById(id).populate({
-      path: "messages",
-      match: {
-        $or: [
-          { report: { $exists: false } },   // Messages where 'report' field doesn't exist
-          { report: { $ne: true } }         // Messages where 'report' is not true
-        ]
-      },
-      options: {
-        sort: { _id: -1 }, // Sort by newest messages first
-        skip: (page - 1) * limit,
-        limit: parseInt(limit, 10),
-      },
-    });
+    // Find the room by ID (no filtering done in the query)
+    const room = await Room.findById(id);
 
     if (!room) {
       return res.status(404).json({ success: false, error: "Room not found" });
     }
 
+    // Filter the messages to exclude those with hide: true
+    const filteredMessages = room.messages.filter(
+      (message) => message.hide !== true
+    );
+
+    // Paginate the filtered messages
+    const startIndex = (page - 1) * limit;
+    const paginatedMessages = filteredMessages.slice(
+      startIndex,
+      startIndex + parseInt(limit, 10)
+    );
+
     // Get total number of messages for pagination info
-    const totalMessages = await Room.aggregate([
-      { $match: { _id: room._id } },
-      { $project: { messageCount: { $size: "$messages" } } },
-    ]);
+    const totalMessages = filteredMessages.length;
+    const totalPages = Math.ceil(totalMessages / limit);
 
-    const totalPages = Math.ceil(totalMessages[0].messageCount / limit);
-
+    // Emit an event to get the room users list
     req.app.io.emit("getRoomUsersList", { roomId: id });
 
     res.status(200).json({
       success: true,
       message: "All room messages successfully retrieved",
-      data: room.messages,
+      data: paginatedMessages,
       page: parseInt(page, 10),
       totalPages,
-      totalMessages: totalMessages[0].messageCount,
+      totalMessages,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 exports.hideMessage = async (req, res) => {
   const { roomId, messageId } = req.body;
@@ -301,16 +346,27 @@ exports.hideMessage = async (req, res) => {
       });
     }
 
-    // Set the "hide" attribute of the message to true
-    room.messages[messageIndex].hide = true;
+    // If the "hide" attribute is missing, initialize it
+    if (room.messages[messageIndex].hide === undefined) {
+      room.messages[messageIndex].hide = true; // Initialize and set to true
+    } else {
+      // Set the "hide" attribute to true if it already exists
+      room.messages[messageIndex].hide = true;
+    }
 
-    req.app.io.emit("message", { ...room.messages[messageIndex], type: "remove"})
+    // Mark the modified field to ensure it's saved
+    room.markModified(`messages.${messageIndex}.hide`);
+
     // Save the updated room document
     await room.save();
+
+    // Emit the updated message with type 'remove' to the socket
+    req.app.io.emit("message", { ...room.messages[messageIndex], type: "remove" });
 
     res.status(200).json({
       success: true,
       message: "Message hidden successfully",
+      data: room.messages
     });
   } catch (err) {
     res.status(500).json({
@@ -319,6 +375,66 @@ exports.hideMessage = async (req, res) => {
     });
   }
 };
+
+
+// exports.hideMessage = async (req, res) => {
+//   const { roomId, messageId } = req.body;
+
+//   // Validate that roomId and messageId are valid ObjectIds
+//   if (!mongoose.Types.ObjectId.isValid(roomId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Invalid room or message ID",
+//     });
+//   }
+
+//   try {
+//     // Find the room and the specific message
+//     const room = await Room.findById(roomId);
+
+//     if (!room) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Room not found",
+//       });
+//     }
+
+//     // Find the message inside the room's messages array
+//     const messageIndex = room.messages.findIndex(
+//       (msg) => msg._id.toString() == messageId
+//     );
+
+//     if (messageIndex === -1) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Message not found",
+//       });
+//     }
+
+//     // Check if the message already has the report attribute
+//     if (!room.messages[messageIndex].hasOwnProperty('hide')) {
+//       room.messages[messageIndex].hide = false; // Initialize if not present
+//     }
+    
+//     // Set the "hide" attribute of the message to true
+//     room.messages[messageIndex].hide = true;
+
+//     req.app.io.emit("message", { ...room.messages[messageIndex], type: "remove"})
+//     // Save the updated room document
+//     const roomD=await room.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Message hidden successfully",
+//       data:roomD?.messages
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// };
 exports.hideMsgAndBanUser = async (req, res) => {
   const { roomId, messageId, userId, endTime } = req.body;
 
