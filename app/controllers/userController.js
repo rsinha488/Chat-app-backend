@@ -98,8 +98,10 @@ exports.userLogin = async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
+    const userObj = user.toObject();
+    delete userObj.password;
     // Send response with token
-    res.status(200).json({ success: true, data: { user, token } });
+    res.status(200).json({ success: true, data: { user: userObj, token } });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
