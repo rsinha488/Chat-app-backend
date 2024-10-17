@@ -29,6 +29,9 @@ exports.sendMessage = async (req, res) => {
       content: content,
       emojiReaction: [],
       createdOn: createdOn, // Add createdOn attribute
+      report:false,
+      hide:false,
+      reportedBy:[]
     };
 
     // const text = "#123abc! more text #456def, and #789ghi here";
