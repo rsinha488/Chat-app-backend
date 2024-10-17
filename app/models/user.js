@@ -75,7 +75,7 @@ const userSchema = new mongoose.Schema({
     }
   ],
   blockedEndTime: {
-    type: Date,
+    type: String,
     default: ""
   },
 });
