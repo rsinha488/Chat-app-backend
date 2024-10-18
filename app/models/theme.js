@@ -84,6 +84,24 @@ const ThemeSchema = new mongoose.Schema({
       default: [],
     },
   ],
+  customize: {
+    header: {
+      type: Number,
+      default: 1,
+    },
+    subheader: {
+      type: Number,
+      default: 1,
+    },
+    message: {
+      type: Number,
+      default: 1,
+    },
+    quickReaction: {
+      type: Boolean,
+      default: true,
+    },
+  },
   Other: {
     supportEmail: { type: String },
     chatrule: { type: String },
