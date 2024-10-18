@@ -29,6 +29,9 @@ exports.sendMessage = async (req, res) => {
       content: content,
       emojiReaction: [],
       createdOn: createdOn, // Add createdOn attribute
+      report:false,
+      hide:false,
+      reportedBy:[]
     };
 
     // const text = "#123abc! more text #456def, and #789ghi here";
@@ -51,11 +54,11 @@ exports.sendMessage = async (req, res) => {
         hashtagTitle: createHashTag?.hashtagTitle,
       });
       if (!existingHashtag) {
-        console.log("existingHashtag ", existingHashtag);
+        // console.log("existingHashtag ", existingHashtag);
         let newHashtag = new HashTag(createHashTag);
         const hashTagData = await newHashtag.save();
   
-        console.log("Create hash ", hashTagData);
+        // console.log("Create hash ", hashTagData);
         message = {
           ...message,
           hashtagStatus: true,
@@ -66,7 +69,6 @@ exports.sendMessage = async (req, res) => {
       }
       // console.log(match[1]); //Output: 123abc
     }
-    console.log(message);
 
 
     // Step 2: Push the message ID to the Room's messages array
@@ -106,7 +108,7 @@ exports.sendEmojiReaction = async (req, res) => {
           (e) => e.sender._id.toString() === sender._id.toString()
         );
         if (foundExit?.length > 0) {
-          console.log("foundExit", foundExit);
+          // console.log("foundExit", foundExit);
           return {
             ...message,
             emojiReaction: message.emojiReaction.map((e) => {
@@ -486,7 +488,7 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Update user's ban status and blockedEndTime
     user.blockedEndTime = moment(endTime).valueOf(); // Set the specified endTime
     user.status = true; // Set user status to true (banned)
-    console.log({ ...user, type: "ban"},"...user")
+    // console.log({ ...user, type: "ban"},"...user")
     req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
 
     // Save the updated room and user

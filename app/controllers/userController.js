@@ -19,15 +19,6 @@ const ObjectId = mongoose.Types.ObjectId;
 
 exports.createUser = async (req, res) => {
   const { userName, firstName, lastName, image, password, isAdmin } = req.body;
-  console.log(
-    req.body,
-    userName,
-    firstName,
-    lastName,
-    image,
-    password,
-    isAdmin
-  );
 
   // Check if password is provided
   if (!password) {
@@ -46,10 +37,9 @@ exports.createUser = async (req, res) => {
     isAdmin: isAdmin ? isAdmin : false,
     password: hashedPassword,
   });
-  console.log({ data });
 
   try {
-    const dataToSave = data.save();
+    const dataToSave =await data.save();
 
     // JWT token creation with expiry
     const token = jwt.sign(
@@ -57,8 +47,9 @@ exports.createUser = async (req, res) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
-
-    res.status(200).json({ success: true, data: dataToSave, token });
+    const userObj = dataToSave.toObject();
+    delete userObj.password;
+    res.status(200).json({ success: true, data: userObj, token });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
