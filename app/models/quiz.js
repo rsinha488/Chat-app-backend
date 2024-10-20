@@ -9,7 +9,7 @@ const quizSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  endTime: { type: Date, default: "" },
+  endTime: { type: String, default: "" },
   bgImage: { type: String, default: "" },
   options: {
     type: [

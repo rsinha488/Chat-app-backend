@@ -4,7 +4,7 @@ const Room = require("../models/room");
 const { default: mongoose } = require("mongoose");
 const { getSocket } = require("../../sockets");
 const HashTag = require("../models/hashTag");
-const moment = require('moment')
+const moment = require("moment");
 
 exports.sendMessage = async (req, res) => {
   try {
@@ -20,7 +20,8 @@ exports.sendMessage = async (req, res) => {
         .json({ success: false, error: "User or room not found" });
     }
     let msg_id = new mongoose.Types.ObjectId();
-    const createdOn = new Date(); // Get the current date and time
+    const createdOn = new moment(new Date()); // Get the current date and time
+
     let message = {
       _id: msg_id,
       sender: user,
@@ -29,9 +30,9 @@ exports.sendMessage = async (req, res) => {
       content: content,
       emojiReaction: [],
       createdOn: createdOn, // Add createdOn attribute
-      report:false,
-      hide:false,
-      reportedBy:[]
+      report: false,
+      hide: false,
+      reportedBy: [],
     };
 
     // const text = "#123abc! more text #456def, and #789ghi here";
@@ -57,7 +58,7 @@ exports.sendMessage = async (req, res) => {
         // console.log("existingHashtag ", existingHashtag);
         let newHashtag = new HashTag(createHashTag);
         const hashTagData = await newHashtag.save();
-  
+
         // console.log("Create hash ", hashTagData);
         message = {
           ...message,
@@ -65,11 +66,9 @@ exports.sendMessage = async (req, res) => {
           hashtagTitle: "#" + match[1],
           hashtagId: hashTagData._id,
         };
-        
       }
       // console.log(match[1]); //Output: 123abc
     }
-
 
     // Step 2: Push the message ID to the Room's messages array
     let updatedRoom = await Room.findByIdAndUpdate(roomId, {
@@ -313,12 +312,14 @@ exports.getMessage = async (req, res) => {
   }
 };
 
-
 exports.hideMessage = async (req, res) => {
   const { roomId, messageId } = req.body;
 
   // Validate that roomId and messageId are valid ObjectIds
-  if (!mongoose.Types.ObjectId.isValid(roomId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+  if (
+    !mongoose.Types.ObjectId.isValid(roomId) ||
+    !mongoose.Types.ObjectId.isValid(messageId)
+  ) {
     return res.status(400).json({
       success: false,
       message: "Invalid room or message ID",
@@ -363,12 +364,15 @@ exports.hideMessage = async (req, res) => {
     await room.save();
 
     // Emit the updated message with type 'remove' to the socket
-    req.app.io.emit("message", { ...room.messages[messageIndex], type: "remove" });
+    req.app.io.emit("message", {
+      ...room.messages[messageIndex],
+      type: "remove",
+    });
 
     res.status(200).json({
       success: true,
       message: "Message hidden successfully",
-      data: room.messages
+      data: room.messages,
     });
   } catch (err) {
     res.status(500).json({
@@ -377,7 +381,6 @@ exports.hideMessage = async (req, res) => {
     });
   }
 };
-
 
 // exports.hideMessage = async (req, res) => {
 //   const { roomId, messageId } = req.body;
@@ -417,7 +420,7 @@ exports.hideMessage = async (req, res) => {
 //     if (!room.messages[messageIndex].hasOwnProperty('hide')) {
 //       room.messages[messageIndex].hide = false; // Initialize if not present
 //     }
-    
+
 //     // Set the "hide" attribute of the message to true
 //     room.messages[messageIndex].hide = true;
 
@@ -439,7 +442,7 @@ exports.hideMessage = async (req, res) => {
 // };
 exports.hideMsgAndBanUser = async (req, res) => {
   const { roomId, messageId, userId, endTime } = req.body;
-
+  console.log("PAram", roomId, messageId, userId, endTime);
   // Validate roomId, messageId, and userId as ObjectId
   if (
     !mongoose.Types.ObjectId.isValid(roomId) ||
@@ -456,7 +459,7 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Find the room and the user
     const room = await Room.findById(roomId);
     const user = await User.findById(userId);
-
+    console.log("try");
     if (!room) {
       return res.status(404).json({
         success: false,
@@ -475,7 +478,6 @@ exports.hideMsgAndBanUser = async (req, res) => {
     const messageIndex = room.messages.findIndex(
       (msg) => msg._id.toString() === messageId
     );
-
     if (messageIndex === -1) {
       return res.status(404).json({
         success: false,
@@ -489,8 +491,14 @@ exports.hideMsgAndBanUser = async (req, res) => {
     user.blockedEndTime = moment(endTime).valueOf(); // Set the specified endTime
     user.status = true; // Set user status to true (banned)
     // console.log({ ...user, type: "ban"},"...user")
-    req.app.io.emit("overall_notification", { ...user?._doc, type: "ban"});
-
+    req.app.io.emit("overall_notification", { ...user?._doc, type: "ban" });
+    console.log(messageIndex);
+    console.log(
+      "HI",
+      user?.blockedEndTime,
+      user?.blockedEndTime - new moment(new Date()).valueOf(),
+      new moment(endTime) - new moment(new Date())
+    );
     // Save the updated room and user
     await room.save();
     await user.save();
@@ -498,12 +506,12 @@ exports.hideMsgAndBanUser = async (req, res) => {
     // Schedule a job to unblock the user when blockedEndTime passes
     setTimeout(async () => {
       const currentUser = await User.findById(userId);
-      if (new Date() >= new Date(currentUser.blockedEndTime)) {
+      if (new moment(new Date()).valueOf() >= currentUser.blockedEndTime) {
         currentUser.status = false; // Unblock the user by setting status to false
         currentUser.blockedEndTime = null; // Clear the blockedEndTime
         await currentUser.save();
       }
-    }, new Date(endTime) - new Date()); // Schedule timeout based on remaining ban time
+    }, user?.blockedEndTime - new moment(new Date()).valueOf()); // Schedule timeout based on remaining ban time
 
     res.status(200).json({
       success: true,
@@ -524,7 +532,10 @@ exports.reportMessage = async (req, res) => {
   const { roomId, messageId, userId } = req.body;
 
   // Validate that roomId and messageId are valid ObjectIds
-  if (!mongoose.Types.ObjectId.isValid(roomId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+  if (
+    !mongoose.Types.ObjectId.isValid(roomId) ||
+    !mongoose.Types.ObjectId.isValid(messageId)
+  ) {
     return res.status(400).json({
       success: false,
       message: "Invalid room or message ID",
@@ -555,11 +566,11 @@ exports.reportMessage = async (req, res) => {
     }
 
     // Check if the message already has the report attribute
-    if (!room.messages[messageIndex].hasOwnProperty('report')) {
+    if (!room.messages[messageIndex].hasOwnProperty("report")) {
       room.messages[messageIndex].report = false; // Initialize if not present
     }
-    
-    if (!room.messages[messageIndex].hasOwnProperty('reportedBy')) {
+
+    if (!room.messages[messageIndex].hasOwnProperty("reportedBy")) {
       room.messages[messageIndex].reportedBy = []; // Initialize if not present
     }
 
@@ -577,12 +588,14 @@ exports.reportMessage = async (req, res) => {
 
     // Save the updated room document
     // await room.save();
-    let updatedRoom = await Room.findByIdAndUpdate(roomId, {
-      // $push: { messages: room.messages[messageIndex] },
-      
-        $set: { [`messages.${messageIndex}`]: room.messages[messageIndex] } 
+    let updatedRoom = await Room.findByIdAndUpdate(
+      roomId,
+      {
+        // $push: { messages: room.messages[messageIndex] },
+
+        $set: { [`messages.${messageIndex}`]: room.messages[messageIndex] },
       },
-      { new: true }  // Returns the updated document
+      { new: true } // Returns the updated document
     );
     res.status(200).json({
       success: true,
@@ -591,9 +604,9 @@ exports.reportMessage = async (req, res) => {
         messageId: room.messages[messageIndex]._id,
         report: room.messages[messageIndex].report,
         reportedBy: room.messages[messageIndex].reportedBy,
-        me:room.messages[messageIndex]
+        me: room.messages[messageIndex],
       },
-      updatedData:updatedRoom
+      updatedData: updatedRoom,
     });
   } catch (err) {
     res.status(500).json({
@@ -603,10 +616,3 @@ exports.reportMessage = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-

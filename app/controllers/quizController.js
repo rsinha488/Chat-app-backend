@@ -4,6 +4,7 @@ const Quiz = require("../models/quiz");
 const Room = require("../models/room");
 const User = require("../models/user");
 const cron = require("node-cron");
+const moment = require('moment')
 
 // const io = socketIO();
 
@@ -60,8 +61,8 @@ exports.updateQuiz = async (req, res) => {
     const { roomId, endTime } = req.body;
     let data;
 
-    const currentTime = new Date();
-    const endTime1 = new Date(endTime);
+    const currentTime = new moment(new Date());
+    const endTime1 = new moment(endTime);
     const timeDifference = endTime1 - currentTime;
     // Only schedule if endTime is in the future
     if (timeDifference <= 0) {
@@ -367,8 +368,8 @@ exports.updateQuizRow = async (req, res) => {
 
 // Function to calculate the difference and set the timeout
 function scheduleQuizStatusUpdate(quiz, req) {
-  const currentTime = new Date();
-  const endTime = new Date(quiz.endTime);
+  const currentTime = new moment(new Date());
+  const endTime = new moment(quiz.endTime);
   const timeDifference = endTime - currentTime;
 
   // Only schedule if endTime is in the future
@@ -390,7 +391,7 @@ cron.schedule("0 * * * *", async () => {
     // Find all active quizzes with endTime in the future
     const activeQuizzes = await Quiz.find({
       status: true,
-      endTime: { $gt: new Date() },
+      endTime: { $gt: new moment(new Date()) },
     });
 
     // Schedule status update for each active quiz

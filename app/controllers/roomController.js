@@ -103,7 +103,7 @@ exports.getRoomMessages = async (req, res) => {
     }
     // Sort messages by createdOn in descending order (latest first)
     filteredMessages.sort(
-      (a, b) => new Date(b.createdOn) - new Date(a.createdOn)
+      (a, b) => new moment(b.createdOn) - new moment(a.createdOn)
     );
 
     // Respond with filtered messages and roomId

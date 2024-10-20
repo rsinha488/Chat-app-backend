@@ -30,7 +30,7 @@ const eventSchema = new mongoose.Schema({
     type: String,
   },
   endTime: {
-    type: Date,
+    type: String,
     default: "",
   },
   isDeleted: {

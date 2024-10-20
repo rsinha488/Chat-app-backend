@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 const { getSocket } = require("../../sockets");
 const Event = require("../models/event");
 const User = require("../models/user");
+const moment = require('moment')
 
 exports.createEvent = async (req, res) => {
   try {
@@ -36,10 +37,10 @@ exports.getAllEvents = async (req, res) => {
         .json({ success: false, message: "No Events found" });
     }
 
-    const currentTime = new Date();
+    const currentTime = new moment(new Date());
     const updatedEventList = await Promise.all(
       eventList.map(async (event) => {
-        if (event.endTime && new Date(event.endTime) < currentTime && event.status === true) {
+        if (event.endTime && new moment(event.endTime) < currentTime && event.status === true) {
           // Update the event's status to false in the database
           event.status = false;
           await Event.updateOne({ _id: event._id }, { status: false });
@@ -79,11 +80,11 @@ exports.updateEventDetail = async (req, res) => {
     let { endTime } = req.body; // Get endTime from the request body
     let data = req.body;
 
-    let current = new Date(); // Get the current date and time
+    let current = new moment(new Date()); // Get the current date and time
 
     // Ensure endTime is a Date object (if it's a string in req.body)
     if (endTime) {
-      endTime = new Date(endTime);
+      endTime = new moment(endTime);
     }
 
     // Check if endTime is before the current time
