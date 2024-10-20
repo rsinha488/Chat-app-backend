@@ -11,7 +11,7 @@ router.get('/:id',  authenticate, chatController.getMessage);
 
 router.post('/hide', authenticate, chatController.hideMessage);
 
-router.post('/hide/ban', authenticate, chatController.hideMsgAndBanUser);
+router.post('/hide/ban',  chatController.hideMsgAndBanUser);
 
 router.post("/reportMsg",chatController.reportMessage)
 

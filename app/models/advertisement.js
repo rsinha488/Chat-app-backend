@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('./user');
+const moment = require('moment')
 
 // User details schema to store inside click and watch arrays
 const userDetailSchema = new mongoose.Schema({
@@ -9,8 +10,8 @@ const userDetailSchema = new mongoose.Schema({
     required: true,
   },
   actionTime: {
-    type: Date,
-    default: Date.now, // Store the action time
+    type: String,
+    default: new moment(new Date()), // Store the action time
   },
 });
 
@@ -48,7 +49,7 @@ const advertisementSchema = new mongoose.Schema({
     default: [],
   },
   endTime: {
-    type: Date, // When the advertisement ends
+    type: String, // When the advertisement ends
   },
   status: {
     type: Boolean, // Status of the advertisement (active/inactive)

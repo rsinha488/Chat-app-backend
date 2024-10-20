@@ -1,6 +1,7 @@
 const Advertisement = require("../models/advertisement");
 const Slot = require("../models/slot");
 const User = require("../models/user");
+const moment = require('moment')
 
 // Create a new advertisement
 exports.createAdvertisement = async (req, res) => {
@@ -29,19 +30,30 @@ exports.getAllAdvertisements = async (req, res) => {
 
   try {
     // Fetch advertisements based on the query
-    const advertisements = await Advertisement.find(data).populate("selectedSlots", "name");
+    const advertisements = await Advertisement.find(data).populate(
+      "selectedSlots",
+      "name"
+    );
 
     // If no advertisements are found, return 404
     if (!advertisements || advertisements.length === 0) {
-      return res.status(404).json({ success: false, message: "No advertisements found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No advertisements found" });
     }
 
-    const currentTime = new Date();
+    const currentTime = new moment(new Date());
 
+    
     // Update any advertisement whose endTime has passed
     const updatedAdvertisements = await Promise.all(
       advertisements.map(async (ad) => {
-        if (ad.endTime && new Date(ad.endTime) < currentTime && ad.status === true) {
+        // console.log("object", new moment(ad.endTime), new moment(new Date()));
+        if (
+          ad.endTime &&
+          new moment(ad.endTime) < currentTime &&
+          ad.status === true
+        ) {
           // Update the status to false in the database
           await Advertisement.updateOne({ _id: ad._id }, { status: false });
           ad.status = false; // Also update the status in the response

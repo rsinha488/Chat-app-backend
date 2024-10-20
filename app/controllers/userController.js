@@ -16,6 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this s
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; // Token expiry duration
 
 const ObjectId = mongoose.Types.ObjectId;
+const moment = require('moment')
 
 exports.createUser = async (req, res) => {
   const { userName, firstName, lastName, image, password, isAdmin } = req.body;
@@ -194,8 +195,8 @@ exports.subscribeToRoom = async (req, res) => {
     if (quiz) quizData = quiz[0];
 
     if (quizData?.endTime) {
-      const currentTime = new Date();
-      const endTime = new Date(quizData?.endTime);
+      const currentTime = new moment(new Date());
+      const endTime = new moment(quizData?.endTime);
       const timeDifference = endTime - currentTime;
       // Only schedule if endTime is in the future
       if (timeDifference > 0) {
@@ -295,7 +296,7 @@ exports.getUser = async (req, res) => {
     // Find all users, excluding the password field
     let users = await User.find().select("-password");
 
-    const currentTime = new Date();
+    const currentTime = new moment(new Date());
 
     // Loop through each user and update the status if blockedEndTime has passed
     users = await Promise.all(
