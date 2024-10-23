@@ -72,6 +72,10 @@ const ThemeSchema = new mongoose.Schema({
   fontFamily: [
     {
       type: {
+        fontName: {
+            type: String,
+            default: "",
+          },
           font: {
             type: String,
             default: "",
