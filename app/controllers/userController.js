@@ -179,11 +179,16 @@ exports.subscribeToRoom = async (req, res) => {
       roomId,
       data: userList,
     });
-    req.app.io.to(roomId).emit("MemberUpdate", {
+    req.app.io.broadcast.to(roomId).emit("MemberUpdate", {
       badges: true,
       roomId,
       content: `${user.userName} has joined`,
     });
+    // req.app.io.to(roomId).emit("MemberUpdate", {
+    //   badges: true,
+    //   roomId,
+    //   content: `${user.userName} has joined`,
+    // });
 
     //Find active quiz
     let quiz = await Quiz.find({
