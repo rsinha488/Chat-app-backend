@@ -1,5 +1,6 @@
 // roomController.js
 const Room = require("../models/room");
+const ThemeModel = require("../models/theme");
 
 exports.createRoom = async (req, res) => {
   try {
@@ -22,9 +23,23 @@ exports.createRoom = async (req, res) => {
 
 exports.getRoomsList = async (req, res) => {
   try {
-    const roomsList = await Room.find();
+    const themeList = await ThemeModel.find();
+    const roomsList = await Room.find()
+    let newList = await roomsList.map((e) => {
+        if (e.fontFamily) {
+          return {
+            ...e?._doc,
+            fontFamily: themeList[0].fontFamily.map(
+              (v) => v._id.toString() === e.fontFamily.toString() ? v : false
+            ).filter((c) => c)[0],
+          };
+        } else {
+          return e;
+        }
+      })
+    // console.log(newList,"roomsList", themeList[0].fontFamily)
     // console.log("Rooms List =",roomsList)
-    res.status(200).json({ success: true, data: roomsList });
+    res.status(200).json({ success: true, data: newList });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
