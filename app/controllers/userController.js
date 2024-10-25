@@ -16,7 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "ruchi_jwt_secret"; // Store this s
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "1d"; // Token expiry duration
 
 const ObjectId = mongoose.Types.ObjectId;
-const moment = require('moment')
+const moment = require("moment");
 
 exports.createUser = async (req, res) => {
   const { userName, firstName, lastName, image, password, isAdmin } = req.body;
@@ -40,7 +40,7 @@ exports.createUser = async (req, res) => {
   });
 
   try {
-    const dataToSave =await data.save();
+    const dataToSave = await data.save();
 
     // JWT token creation with expiry
     const token = jwt.sign(
@@ -67,7 +67,9 @@ exports.userLogin = async (req, res) => {
       });
     }
 
-    const user = isAdmin ? await User.findOne({ userName, isAdmin: true }) : await User.findOne({ userName });
+    const user = isAdmin
+      ? await User.findOne({ userName, isAdmin: true })
+      : await User.findOne({ userName });
 
     if (!user) {
       return res
@@ -134,6 +136,7 @@ exports.subscribeToRoom = async (req, res) => {
       req.app.io.to(previousRoom.roomId).emit("MemberUpdate", {
         badges: true,
         roomId: previousRoom.roomId,
+        user: user,
         content: `${user.name} has left the room`,
       });
       console.log(previousRoom.roomId, socket.id, "left");
@@ -179,16 +182,16 @@ exports.subscribeToRoom = async (req, res) => {
       roomId,
       data: userList,
     });
-    req.app.io.broadcast.to(roomId).emit("MemberUpdate", {
-      badges: true,
-      roomId,
-      content: `${user.userName} has joined`,
-    });
-    // req.app.io.to(roomId).emit("MemberUpdate", {
+    // req.app.io.broadcast.to(roomId).emit("MemberUpdate", {
     //   badges: true,
     //   roomId,
     //   content: `${user.userName} has joined`,
     // });
+    req.app.io.to(roomId).emit("MemberUpdate", {
+      badges: true,
+      roomId,
+      content: `${user.userName} has joined`,
+    });
 
     //Find active quiz
     let quiz = await Quiz.find({
@@ -758,12 +761,12 @@ exports.getFriendRequests = async (req, res) => {
   }
 };
 exports.rejectFriendRequest = async (req, res) => {
-  const { userId, requestId } = req.body;    
-  
+  const { userId, requestId } = req.body;
+
   try {
     // Find the user who is rejecting the friend request
     const user = await User.findById(userId);
-    
+
     // Find the specific request by requestId
     const request = user.requests.id(requestId);
     const sender = await User.findById(request.userId);
@@ -782,9 +785,9 @@ exports.rejectFriendRequest = async (req, res) => {
     // Save the updated user without the rejected request
     await user.save();
     req.app.io.emit("notification", {
-      sender:user,
+      sender: user,
       receiver: sender,
-      message: `Friend request rejected`
+      message: `Friend request rejected`,
     });
     res.status(200).json({
       success: true,
