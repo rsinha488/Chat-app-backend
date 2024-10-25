@@ -9,7 +9,7 @@ const moment = require("moment");
 exports.sendMessage = async (req, res) => {
   try {
     const socket = getSocket();
-    const { userId, roomId, content } = req.body;
+    const { userId, roomId, content, parent = false } = req.body;
 
     // Find the user and room
     const user = await User.findById({ _id: userId });
@@ -28,6 +28,7 @@ exports.sendMessage = async (req, res) => {
       hashtagStatus: false,
       room: roomId,
       content: content,
+      parent : parent ? parent : false,
       emojiReaction: [],
       createdOn: createdOn, // Add createdOn attribute
       report: false,
@@ -281,7 +282,7 @@ exports.getMessage = async (req, res) => {
     }
 
     // Filter the messages to exclude those with hide: true
-    const filteredMessages = room.messages.filter(
+    const filteredMessages = room.messages.reverse().filter(
       (message) => message.hide !== true
     );
 
@@ -302,7 +303,7 @@ exports.getMessage = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "All room messages successfully retrieved",
-      data: paginatedMessages,
+      data: paginatedMessages.reverse(),
       page: parseInt(page, 10),
       totalPages,
       totalMessages,
