@@ -14,7 +14,11 @@ exports.authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
-    const user = await User.findOne({ _id: decoded.userId });
+    const user = await User.findOne({
+      $or: [
+      { _id: decoded.userId },
+      { previousId: decoded.userId }
+    ] });
 
     const targetTime = moment(user.blockedEndTime).valueOf();
     const currentTime = moment().valueOf();
@@ -40,16 +44,21 @@ exports.verifytoken = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findOne({ _id: decoded.userId });
+    const user = await User.findOne({
+      $or: [
+        { _id: decoded.userId },
+        { previousId: decoded.userId }
+      ]
+    });
     res.status(200).json({
-      success: true,
+      success: user ? true : false,
       data: {
-        user: user,
+        user: user ? user : decoded.userId,
         token: token,
       },
       status: true,
     });
   } catch (error) {
-    res.status(401).json({ message: "Invalid or expired token" });
+    res.status(401).json({ status: false, message: "Invalid or expired token" });
   }
 };

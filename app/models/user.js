@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String
   },
+  previousId: {
+    type: String
+  },
   image: {
     type: String
   },
