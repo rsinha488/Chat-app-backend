@@ -19,7 +19,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const moment = require("moment");
 
 exports.createUser = async (req, res) => {
-  const { userName, firstName, lastName, image, password, isAdmin } = req.body;
+  const { userName, firstName, lastName, image, password, isAdmin, previousId = "" } = req.body;
 
   // Check if password is provided
   if (!password) {
@@ -37,6 +37,7 @@ exports.createUser = async (req, res) => {
     image: image,
     isAdmin: isAdmin ? isAdmin : false,
     password: hashedPassword,
+    previousId, previousId
   });
 
   try {
