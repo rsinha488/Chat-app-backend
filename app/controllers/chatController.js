@@ -12,7 +12,7 @@ exports.sendMessage = async (req, res) => {
     const { userId, roomId, content, parent = false } = req.body;
 
     // Find the user and room
-    const user = await User.findById({ _id: userId });
+    let user = await User.findById({ _id: userId });
     const room = await Room.findById({ _id: roomId });
     if (!user || !room) {
       return res
@@ -28,7 +28,7 @@ exports.sendMessage = async (req, res) => {
       hashtagStatus: false,
       room: roomId,
       content: content,
-      parent : parent ? parent : false,
+      parent: parent ? parent : false,
       emojiReaction: [],
       createdOn: createdOn, // Add createdOn attribute
       report: false,
@@ -75,6 +75,25 @@ exports.sendMessage = async (req, res) => {
     let updatedRoom = await Room.findByIdAndUpdate(roomId, {
       $push: { messages: message },
     });
+    // Check if the user has the "First Message" badge
+    const hasBadge = user.badges.some(
+      (badge) => badge.title === "First Message"
+    );
+    if (!hasBadge) {
+      let firstMsgBadge = {
+        title: "First Message",
+        message: "First Message Badge",
+        image:
+          "https://st2.depositphotos.com/5967296/8945/v/950/depositphotos_89450880-stock-illustration-vector-one-new-message-icon.jpg",
+      };
+      user = await User.findByIdAndUpdate(userId, {
+        $push: { badges: firstMsgBadge },
+      });
+      message = {
+        message,    
+          badges: firstMsgBadge
+      };
+    }   
 
     req.app.io.to(roomId).emit("message", message);
 
@@ -82,7 +101,7 @@ exports.sendMessage = async (req, res) => {
       success: true,
       message: "Message sent successfully",
       status: true,
-      data: message,
+      data: { message },
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -282,9 +301,9 @@ exports.getMessage = async (req, res) => {
     }
 
     // Filter the messages to exclude those with hide: true
-    const filteredMessages = room.messages.reverse().filter(
-      (message) => message.hide !== true
-    );
+    const filteredMessages = room.messages
+      .reverse()
+      .filter((message) => message.hide !== true);
 
     // Paginate the filtered messages
     const startIndex = (page - 1) * limit;
