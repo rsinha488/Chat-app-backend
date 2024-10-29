@@ -56,6 +56,10 @@ exports.createUser = async (req, res) => {
     );
     const userObj = dataToSave.toObject();
     delete userObj.password;
+    req.app.io.emit("notification/all", {
+      _id: userObj._id,
+      ...data?.badges
+    });
     res.status(200).json({ success: true, data: userObj, token });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
