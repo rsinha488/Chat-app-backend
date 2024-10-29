@@ -101,7 +101,7 @@ exports.sendMessage = async (req, res) => {
       success: true,
       message: "Message sent successfully",
       status: true,
-      data: { message },
+      data:  message ,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
