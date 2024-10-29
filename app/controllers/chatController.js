@@ -89,10 +89,10 @@ exports.sendMessage = async (req, res) => {
       user = await User.findByIdAndUpdate(userId, {
         $push: { badges: firstMsgBadge },
       });
-      message = {
-        message,    
-          badges: firstMsgBadge
-      };
+      req.app.io.emit("notification/all", {
+        _id: userId,
+        ...firstMsgBadge
+      });
     }   
 
     req.app.io.to(roomId).emit("message", message);
