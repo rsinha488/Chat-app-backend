@@ -1,6 +1,13 @@
 // user.js
 const mongoose = require('mongoose');
 
+const badgeSchema = new mongoose.Schema({
+  title: String,
+  image: String,
+  message: String,
+  _id: mongoose.Schema.Types.ObjectId
+});
+
 const userSchema = new mongoose.Schema({
   userName: {
     type: String,
@@ -81,6 +88,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ""
   },
+  badges:[badgeSchema]
 });
 
 const User = mongoose.model('User', userSchema);

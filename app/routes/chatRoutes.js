@@ -3,7 +3,7 @@ const router = express.Router();
 const chatController = require('../controllers/chatController');
 const { authenticate } = require('../utils/authenticateUser');
 
-router.post('/sendMessage',  authenticate, chatController.sendMessage);
+router.post('/sendMessage',  chatController.sendMessage);
 
 router.post('/sendEmojiReaction',  authenticate, chatController.sendEmojiReaction);
 
