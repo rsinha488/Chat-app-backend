@@ -40,6 +40,8 @@ exports.updateDataById = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Data not found" });
+
+    req.app.io.emit("data/update", {...updatedData, type: "theme"});
     res.json({ success: true, data: updatedData });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
